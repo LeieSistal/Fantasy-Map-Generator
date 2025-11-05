@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FMG Runtime Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+        }
+        .pass { color: #00ff00; }
+        .fail { color: #ff0000; }
+        .warn { color: #ffaa00; }
+        .info { color: #00aaff; }
+        #results {
+            white-space: pre-wrap;
+            border: 1px solid #333;
+            padding: 10px;
+            background: #000;
+            margin-top: 20px;
+        }
+        h1 { color: #00ffff; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Fantasy Map Generator - Runtime Validation</h1>
+    <div id="results">Running tests...</div>
+
+    <script>
+        const results = document.getElementById('results');
+        let output = '';
+
+        function log(msg, type = 'info') {
+            const icon = {
+                pass: '✅',
+                fail: '❌',
+                warn: '⚠️',
+                info: 'ℹ️'
+            }[type] || 'ℹ️';
+
+            output += `${icon} ${msg}\n`;
+            results.innerHTML = output;
+            console.log(`${icon} ${msg}`);
+        }
+
+        function test(name, fn) {
+            try {
+                fn();
+                log(`PASS: ${name}`, 'pass');
+                return true;
+            } catch (error) {
+                log(`FAIL: ${name} - ${error.message}`, 'fail');
+                return false;
+            }
+        }
+
+        // Run tests after a brief delay to ensure scripts loaded
+        setTimeout(() => {
+            output += '\n🧪 RUNTIME VALIDATION TESTS\n';
+            output += '='.repeat(60) + '\n\n';
+            results.innerHTML = output;
+
+            let passed = 0;
+            let failed = 0;
+
+            // Test 1: Check if main libraries are loaded
+            log('📚 LIBRARY TESTS', 'info');
+            log(''.padEnd(60, '-'), 'info');
+
+            if (test('D3.js is loaded', () => {
+                if (typeof d3 === 'undefined') throw new Error('d3 is undefined');
+            })) passed++; else failed++;
+
+            if (test('jQuery is loaded', () => {
+                if (typeof jQuery === 'undefined') throw new Error('jQuery is undefined');
+            })) passed++; else failed++;
+
+            // Test 2: Check if critical globals are defined
+            log('\n🌐 GLOBAL VARIABLES', 'info');
+            log(''.padEnd(60, '-'), 'info');
+
+            if (test('VERSION is defined', () => {
+                if (typeof VERSION === 'undefined') throw new Error('VERSION is undefined');
+                log(`   Version: ${VERSION}`, 'info');
+            })) passed++; else failed++;
+
+            if (test('DEBUG flags are defined', () => {
+                if (typeof DEBUG === 'undefined') throw new Error('DEBUG is undefined');
+                if (typeof ERROR === 'undefined') throw new Error('ERROR is undefined');
+                if (typeof WARN === 'undefined') throw new Error('WARN is undefined');
+            })) passed++; else failed++;
+
+            // Test 3: Check if SVG elements are created
+            log('\n📐 SVG STRUCTURE', 'info');
+            log(''.padEnd(60, '-'), 'info');
+
+            if (test('SVG container exists', () => {
+                if (!document.querySelector('#map')) throw new Error('#map not found');
+            })) passed++; else failed++;
+
+            if (test('SVG layers are defined', () => {
+                if (typeof svg === 'undefined') throw new Error('svg is undefined');
+                if (typeof defs === 'undefined') throw new Error('defs is undefined');
+                if (typeof viewbox === 'undefined') throw new Error('viewbox is undefined');
+            })) passed++; else failed++;
+
+            // Test 4: Check if critical functions exist
+            log('\n⚙️  CRITICAL FUNCTIONS', 'info');
+            log(''.padEnd(60, '-'), 'info');
+
+            if (test('drawFeatures() exists', () => {
+                if (typeof drawFeatures !== 'function') {
+                    throw new Error('drawFeatures is not a function');
+                }
+            })) passed++; else failed++;
+
+            if (test('simplify() exists', () => {
+                if (typeof simplify !== 'function') {
+                    throw new Error('simplify is not a function (from libs/simplify.js)');
+                }
+            })) passed++; else failed++;
+
+            if (test('polylabel() exists', () => {
+                if (typeof polylabel !== 'function') {
+                    throw new Error('polylabel is not a function (from libs/polylabel.min.js)');
+                }
+            })) passed++; else failed++;
+
+            // Test 5: Check if modules are registered
+            log('\n📦 MODULE REGISTRATION', 'info');
+            log(''.padEnd(60, '-'), 'info');
+
+            if (test('Modules object exists', () => {
+                if (typeof window.Modules === 'undefined') {
+                    log('   Modules not registered (might be normal for older versions)', 'warn');
+                }
+            })) passed++; else failed++;
+
+            // Summary
+            log('\n' + '='.repeat(60), 'info');
+            log('📊 TEST SUMMARY', 'info');
+            log('='.repeat(60), 'info');
+            log(`Total: ${passed + failed} | Passed: ${passed} | Failed: ${failed}`, 'info');
+
+            if (failed === 0) {
+                log('\n✅ ALL TESTS PASSED - Application appears functional!', 'pass');
+            } else {
+                log(`\n❌ ${failed} TEST(S) FAILED - Issues detected!`, 'fail');
+            }
+
+            log('\n💡 Open the browser console (F12) to run additional tests:', 'info');
+            log('   • Type "VERSION" to see the current version', 'info');
+            log('   • Type "drawFeatures" to inspect the function', 'info');
+            log('   • Check console for any errors during page load', 'info');
+
+        }, 100);
+    </script>
+
+    <!-- Load the actual application scripts -->
+    <script src="versioning.js"></script>
+    <script src="libs/d3.min.js"></script>
+    <script src="libs/jquery-3.1.1.min.js"></script>
+    <script src="libs/polylabel.min.js"></script>
+    <script src="libs/simplify.js"></script>
+    <script src="modules/renderers/draw-features.js"></script>
+    <script src="main.js"></script>
+</head>
+</html>
