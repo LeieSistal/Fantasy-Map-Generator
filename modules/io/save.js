@@ -6,12 +6,18 @@ async function saveMap(method) {
   closeDialogs("#alert");
 
   try {
+    // Hook: before save
+    await Hooks.execute('beforeSave', method);
+
     const mapData = prepareMapData();
     const filename = getFileName() + ".map";
 
     saveToStorage(mapData, method === "storage"); // any method saves to indexedDB
     if (method === "machine") saveToMachine(mapData, filename);
     if (method === "dropbox") saveToDropbox(mapData, filename);
+
+    // Hook: after save
+    await Hooks.execute('afterSave', method, mapData, filename);
   } catch (error) {
     ERROR && console.error(error);
     alertMessage.innerHTML = /* html */ `An error is occured on map saving. If the issue persists, please copy the message below and report it on ${link(

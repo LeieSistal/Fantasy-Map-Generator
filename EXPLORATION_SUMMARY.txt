@@ -1,0 +1,453 @@
+===============================================================================
+FANTASY MAP GENERATOR - CODEBASE EXPLORATION SUMMARY
+===============================================================================
+
+Exploration Date: 2025-11-06
+Codebase Size: 90+ JavaScript files, ~10,000+ lines in modules/
+Focus: Architecture, data flow, extensibility, hook integration points
+
+===============================================================================
+GENERATED DOCUMENTATION
+===============================================================================
+
+Three comprehensive analysis documents have been created:
+
+1. ARCHITECTURE_ANALYSIS.md (Detailed Technical Guide)
+   └─ 12 major sections covering:
+      • Application entry points and initialization
+      • Core data structures (grid, pack, cells)
+      • Complete 34-step generation pipeline
+      • Rendering system and layer management
+      • Module structure and patterns
+      • UI interaction patterns
+      • Layer management system
+      • State persistence system
+      • Existing extensibility patterns
+      • Performance optimizations
+      • Critical dependencies
+      • Issues and technical debt
+      • 6 categories of recommended hooks
+      • Hook implementation strategy
+
+2. HOOKS_RECOMMENDATIONS.md (Practical Roadmap)
+   └─ Quick implementation guide:
+      • Top 5 hook priorities with code examples
+      • 6-week implementation roadmap
+      • Hook system API design
+      • Example plugin architecture
+      • Files requiring changes
+      • Expected benefits
+      • Estimated effort breakdown
+      • Key design questions to answer
+
+3. ARCHITECTURE_SUMMARY.md (Visual Reference)
+   └─ Diagrams and quick reference:
+      • Complete architecture overview diagram
+      • Data flow diagram
+      • Module communication pattern
+      • Current event system analysis
+      • Proposed hook integration diagram
+      • Issues and gaps table
+      • Key statistics
+      • Critical integration points ranked
+
+===============================================================================
+KEY FINDINGS
+===============================================================================
+
+POSITIVE ASPECTS:
+✓ Well-structured procedural generation pipeline
+✓ Clear separation between generation and rendering
+✓ Efficient use of typed arrays for performance
+✓ Comprehensive feature set (25+ generation aspects)
+✓ Good layer-based rendering system
+✓ Robust save/load system
+✓ Multiple storage backends (IndexedDB, dropbox, machine)
+✓ Performance optimizations (viewport culling, debouncing)
+✓ Seeded random for reproducible maps
+
+CRITICAL GAPS:
+✗ NO HOOKS OR EVENT SYSTEM - everything is hardcoded
+✗ Tight coupling between modules via global state
+✗ No formal plugin/extension architecture
+✗ Limited error handling in generation pipeline
+✗ Direct DOM manipulation (no reactive system)
+✗ Difficult to extend without modifying core
+✗ No validation hooks for data mutations
+✗ Hard to coordinate between modules
+
+ARCHITECTURE PATTERNS:
+• IIFE (Immediately Invoked Function Expressions) for generator modules
+• Global state objects: grid, pack, options, seed
+• Direct function calls between modules
+• SVG-based rendering with D3.js
+• jQuery UI for dialogs
+• localStorage and IndexedDB for persistence
+
+===============================================================================
+DATA FLOW OVERVIEW
+===============================================================================
+
+1. USER INITIATES GENERATION
+   └─► checkLoadParameters() in main.js
+       ├─ Load from URL
+       ├─ Load from seed
+       ├─ Load from IndexedDB
+       └─ Generate new
+
+2. GENERATION PHASE (34 sequential steps)
+   └─► generate() orchestrates:
+       ├─ Grid generation (voronoi, heights, features)
+       ├─ Pack generation (cultures, states, burgs, rivers, etc.)
+       └─ Stores results in global pack/grid objects
+
+3. RENDERING PHASE
+   └─► drawLayers() conditionally calls 20+ drawing functions:
+       ├─ drawFeatures() - base terrain
+       ├─ drawHeightmap() - elevation
+       ├─ drawBiomes() - biome colors
+       ├─ drawBorders() - state/province boundaries
+       ├─ drawBurgIcons() - city markers
+       └─ ... 15+ more specialized renderers
+
+4. USER INTERACTION
+   └─► clicked() dispatches to appropriate editor:
+       ├─ editBurg() - city editor
+       ├─ editRiver() - river editor
+       ├─ editLake() - lake editor
+       └─ ... 20+ more editors
+       └─► jQuery UI dialog opens
+           └─► Modify global state (pack/grid)
+               └─► Call re-render if needed
+
+5. PERSISTENCE
+   └─► saveMap() serializes state:
+       ├─ Send to IndexedDB (autosave)
+       ├─ Download .map file
+       └─ Upload to Dropbox
+
+===============================================================================
+MODULE ORGANIZATION
+===============================================================================
+
+/modules/ (Generation & Core Logic)
+├── features.js          - Land/water feature detection
+├── river-generator.js   - River system generation
+├── cultures-generator.js - Culture placement
+├── burgs-and-states.js  - City and state creation
+├── religions-generator.js - Religion assignment
+├── provinces-generator.js - Province creation
+├── military-generator.js - Military unit placement
+├── routes-generator.js  - Trade route generation
+├── markers-generator.js - Map marker placement
+├── zones-generator.js   - Zone creation
+├── heightmap-generator.js - Elevation generation
+└── ... and 12+ more modules
+
+/modules/ui/ (User Interface)
+├── layers.js            - Layer visibility management
+├── editors.js           - Common editor utilities
+├── options.js           - Options panel
+├── burg-editor.js       - Edit cities
+├── rivers-editor.js     - Edit rivers
+├── lakes-editor.js      - Edit lakes
+└── ... 25+ more UI modules
+
+/modules/renderers/ (Visualization)
+├── draw-features.js     - Terrain rendering
+├── draw-borders.js      - Border rendering
+├── draw-heightmap.js    - Elevation visualization
+├── draw-burg-icons.js   - City markers
+├── draw-temperature.js  - Temperature visualization
+└── ... 10+ more renderers
+
+/modules/io/ (Data Persistence)
+├── save.js              - Map serialization
+├── load.js              - Map deserialization
+├── export.js            - Export to various formats
+└── cloud.js             - Cloud storage integration
+
+/modules/dynamic/ (Dynamically Loaded)
+├── editors/ (Cultures, States, Religions editors)
+├── installation.js      - PWA installation
+├── auto-update.js       - Auto-update logic
+└── ... other dynamic modules
+
+/config/ (Configuration)
+├── heightmap-templates.js - Predefined templates
+└── precreated-heightmaps.js - Preset heightmaps
+
+===============================================================================
+GENERATION PIPELINE (DETAILED)
+===============================================================================
+
+PHASE 1: GRID GENERATION (14 steps)
+1. generateGrid() - Create initial voronoi grid
+2. HeightmapGenerator.generate() - Generate elevation map
+3. Features.markupGrid() - Identify oceans, lakes, islands
+4. addLakesInDeepDepressions() - Add lakes in valleys
+5. openNearSeaLakes() - Connect lakes to ocean
+6. OceanLayers() - Generate ocean layers
+7. defineMapSize() - Set map size based on features
+8. calculateMapCoordinates() - Set lat/lon coordinates
+9. calculateTemperatures() - Generate temperature map
+10. generatePrecipitation() - Generate rainfall map
+11. reGraph() - Convert grid to pack via voronoi
+12. Features.markupPack() - Identify pack features
+13. createDefaultRuler() - Create measurement tool
+14. [OUTPUT: grid and pack with basic geography]
+
+PHASE 2: POPULATION GENERATION (20 steps)
+15. Rivers.generate() - Create river systems
+16. Biomes.define() - Assign biome types to cells
+17. rankCells() - Calculate cell suitability for habitation
+18. Cultures.generate() - Create cultures
+19. Cultures.expand() - Expand cultures into territory
+20. BurgsAndStates.generate() - Create burgs (cities)
+21. Routes.generate() - Create trade routes
+22. Religions.generate() - Assign religions
+23. BurgsAndStates.defineStateForms() - Define state types
+24. Provinces.generate() - Create provinces
+25. Provinces.getPoles() - Find province poles
+26. BurgsAndStates.defineBurgFeatures() - Add city details
+27. Rivers.specify() - Finalize river data
+28. Features.specify() - Finalize feature data
+29. Military.generate() - Create military units
+30. Markers.generate() - Create map markers
+31. Zones.generate() - Create zones
+32. [OUTPUT: fully populated fantasy world]
+
+FINAL STEPS:
+33. drawScaleBar() - Draw scale indicator
+34. Names.getMapName() - Generate world name
+
+Total time: Typically 5-30 seconds depending on map size
+
+===============================================================================
+RENDERING SYSTEM
+===============================================================================
+
+Layer Rendering Order (as they appear in SVG):
+1. Ocean (oceanLayers + oceanPattern)
+2. Lakes (freshwater, salt, sinkhole, frozen, lava, dry)
+3. Landmass (base terrain)
+4. Texture (optional texture overlay)
+5. Heights/Relief (elevation visualization)
+6. Cells (cell boundaries - debug only)
+7. Grid (grid overlay - debug only)
+8. Coordinates (coordinate labels - debug only)
+9. Compass (compass rose)
+10. Rivers (river lines)
+11. Terrain (relief icons)
+12. Religions (religion visualization)
+13. Cultures (culture visualization)
+14. Regions (state visualization)
+15. Provinces (province visualization)
+16. Zones (zone overlay)
+17. Borders (state and province borders)
+18. Routes (trade routes)
+19. Temperature (temperature visualization)
+20. Coastline (coast-specific features)
+21. Ice (ice caps and glaciers)
+22. Population (population visualization)
+23. Emblems (heraldic symbols - hidden by default)
+24. Labels (place names)
+25. Icons (burg icons)
+26. Armies (military units)
+27. Markers (map markers)
+28. Fogging (fog of war visualization)
+29. Ruler (measurement tool)
+30. Debug (debug visualization)
+
+Layer Presets:
+- political: Shows states, borders, burgs
+- cultural: Shows cultures instead of states
+- religions: Shows religious distribution
+- provinces: Shows provincial boundaries
+- biomes: Shows biome types
+- heightmap: Shows elevation
+- physical: Shows elevation with rivers and ice
+- poi: Shows points of interest
+- military: Shows armies and military features
+- emblems: Shows heraldic symbols
+- landmass: Shows only terrain
+
+===============================================================================
+RECOMMENDED HOOK INTEGRATION POINTS (PRIORITY)
+===============================================================================
+
+TIER 1 - CRITICAL (Must have for extensibility)
+├── Generation Lifecycle Hooks
+│   ├── onBeforeGenerate(options)
+│   ├── onAfterHeightmapGenerated(heights)
+│   ├── onAfterCulturesGenerated(cultures)
+│   ├── onAfterStatesGenerated(states)
+│   ├── onAfterBurgsGenerated(burgs)
+│   └── onGenerationComplete(pack, grid)
+│
+└── Rendering Layer Hooks
+    ├── onBeforeLayerRender(layerName)
+    ├── onAfterLayerRender(layerName)
+    ├── onCustomLayerRender(pack, grid)
+    └── onLayerVisibilityChanged(layerName, isVisible)
+
+TIER 2 - HIGH (Significant value, moderate effort)
+├── UI Interaction Hooks
+│   ├── onElementSelected(type, id)
+│   ├── onElementChanged(type, id, oldData, newData)
+│   ├── onEditorOpened(editorName, elementId)
+│   └── onEditorClosed(editorName, elementId, wasSaved)
+│
+└── Data Persistence Hooks
+    ├── onBeforeSave()
+    ├── onAfterSave(method)
+    ├── onBeforeLoad(mapData)
+    └── onAfterLoad(pack, grid)
+
+TIER 3 - MEDIUM (Nice to have)
+├── Map Modification Hooks
+│   ├── onCellHeightChanged(cellId, oldH, newH)
+│   ├── onBurgCreated(burg)
+│   ├── onBurgDeleted(burgId)
+│   └── onStateChanged(stateId, oldData, newData)
+│
+└── Utility Hooks
+    ├── onOptionsChanged(oldOptions, newOptions)
+    ├── onZoomChanged(oldScale, newScale)
+    └── onGenerationError(error, stage)
+
+===============================================================================
+ESTIMATED IMPLEMENTATION EFFORT
+===============================================================================
+
+Phase 1: Foundation (8 hours)
+- Create modules/hooks.js with EventEmitter
+- Add global Hooks object to main.js
+- Documentation of hook conventions
+- Basic error handling
+
+Phase 2: Generation Pipeline (16 hours)
+- Add hooks to generate() function (4h)
+- Add hooks to each generator module (12h)
+  • Rivers, Cultures, States, Burgs, Religions, Provinces, Military, Markers
+  
+Phase 3: Rendering System (12 hours)
+- Add hooks to drawLayers() function (2h)
+- Add hooks to each renderer module (10h)
+  • Features, Heightmap, Borders, Burg icons, Burg labels, etc.
+
+Phase 4: UI System (8 hours)
+- Add interaction hooks to editors.js (3h)
+- Dialog lifecycle hooks (3h)
+- Selection hooks (2h)
+
+Phase 5: Data Persistence (6 hours)
+- Save/load hooks (3h)
+- Export hooks (2h)
+- Version migration hooks (1h)
+
+Phase 6: Testing & Documentation (10 hours)
+- Test suite for hooks system (5h)
+- Plugin development guide (3h)
+- Example plugins (2h)
+
+TOTAL: ~60 hours
+TIMELINE: 2-3 development sprints with 1-2 developers
+
+===============================================================================
+NEXT STEPS RECOMMENDATION
+===============================================================================
+
+1. Review the three generated analysis documents:
+   - Read ARCHITECTURE_ANALYSIS.md for technical details
+   - Read HOOKS_RECOMMENDATIONS.md for implementation plan
+   - Read ARCHITECTURE_SUMMARY.md for visual overview
+
+2. Design the Hook System:
+   - Decide on async vs sync hooks
+   - Define priority system
+   - Plan error handling
+   - Document API design
+
+3. Start with Phase 1:
+   - Create modules/hooks.js
+   - Integrate into main.js
+   - Test with sample hooks
+
+4. Expand gradually:
+   - Generation hooks (Phase 2)
+   - Rendering hooks (Phase 3)
+   - Then UI, persistence, etc.
+
+5. Document as you go:
+   - Plugin development guide
+   - Hook reference documentation
+   - Example plugins
+
+===============================================================================
+FILES ANALYZED
+===============================================================================
+
+Core Files (3):
+- main.js (1544 lines)
+- index.html (591KB - mostly inline CSS/JS)
+- modules/ui/layers.js
+
+Generation Modules (12):
+- features.js
+- river-generator.js
+- cultures-generator.js
+- burgs-and-states.js
+- religions-generator.js
+- provinces-generator.js
+- military-generator.js
+- routes-generator.js
+- markers-generator.js
+- zones-generator.js
+- heightmap-generator.js
+- biomes.js
+
+Rendering Modules (20+):
+- draw-features.js
+- draw-borders.js
+- draw-heightmap.js
+- draw-burg-icons.js
+- draw-burg-labels.js
+- And 15+ more
+
+UI Modules (30+):
+- editors.js
+- options.js
+- Various editor modules
+
+I/O Modules (4):
+- save.js
+- load.js
+- export.js
+- cloud.js
+
+Utility Modules:
+- All modules/ and config/ files explored
+
+===============================================================================
+CONTACT & NOTES
+===============================================================================
+
+This analysis was generated through systematic exploration of the codebase,
+examining:
+- Module structure and dependencies
+- Data flow and generation pipeline
+- Rendering system architecture
+- UI interaction patterns
+- State management
+- Extensibility patterns
+
+The three documents created are meant to serve as:
+1. Technical reference for developers
+2. Implementation roadmap for hooks
+3. Quick visual guide for understanding the system
+
+For questions about specific modules or functions, refer to the inline
+comments in the actual source files.
+
+===============================================================================

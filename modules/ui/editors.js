@@ -12,13 +12,58 @@ function restoreDefaultEvents() {
 }
 
 // handle viewbox click
-function clicked() {
+async function clicked() {
   const el = d3.event.target;
   const parent = el?.parentElement;
   const grand = parent?.parentElement;
   const great = grand?.parentElement;
   const ancestor = great?.parentElement;
   if (!ancestor) return;
+
+  // Determine element type
+  let elementType = null;
+  let elementId = null;
+
+  if (grand.id === "emblems") {
+    elementType = "emblem";
+    elementId = el.id;
+  } else if (parent.id === "rivers") {
+    elementType = "river";
+    elementId = el.id;
+  } else if (grand.id === "routes") {
+    elementType = "route";
+    elementId = el.id;
+  } else if (ancestor.id === "labels" && el.tagName === "tspan") {
+    elementType = "label";
+    elementId = el.id;
+  } else if (grand.id === "burgLabels") {
+    elementType = "burg";
+    elementId = el.id;
+  } else if (grand.id === "burgIcons") {
+    elementType = "burg";
+    elementId = el.id;
+  } else if (parent.id === "ice") {
+    elementType = "ice";
+    elementId = el.id;
+  } else if (parent.id === "terrain") {
+    elementType = "relief";
+    elementId = el.id;
+  } else if (grand.id === "markers" || great.id === "markers") {
+    elementType = "marker";
+    elementId = el.id;
+  } else if (grand.id === "coastline") {
+    elementType = "coastline";
+    elementId = el.id;
+  } else if (grand.id === "lakes") {
+    elementType = "lake";
+    elementId = el.id;
+  } else if (great.id === "armies") {
+    elementType = "regiment";
+    elementId = el.id;
+  }
+
+  // Hook: on element clicked
+  await Hooks.execute('onElementClicked', elementType, elementId, el);
 
   if (grand.id === "emblems") editEmblem();
   else if (parent.id === "rivers") editRiver(el.id);
@@ -32,6 +77,9 @@ function clicked() {
   else if (grand.id === "coastline") editCoastline();
   else if (grand.id === "lakes") editLake();
   else if (great.id === "armies") editRegiment();
+
+  // Hook: after editor opened
+  await Hooks.execute('afterEditorOpened', elementType, elementId);
 }
 
 // clear elSelected variable

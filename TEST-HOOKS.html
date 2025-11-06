@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Hooks System Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #3c3c3c;
+      border-radius: 5px;
+      background: #252526;
+    }
+    .test-section h3 {
+      margin-top: 0;
+      color: #4fc3f7;
+    }
+    .pass {
+      color: #4caf50;
+    }
+    .fail {
+      color: #f44336;
+    }
+    button {
+      background: #0e639c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    button:hover {
+      background: #1177bb;
+    }
+    #output {
+      max-height: 400px;
+      overflow-y: auto;
+      background: #1e1e1e;
+      padding: 10px;
+      border: 1px solid #3c3c3c;
+      margin-top: 10px;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #4fc3f7;
+      padding-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🪝 Fantasy Map Generator - Hooks System Test</h1>
+
+  <div class="test-section">
+    <h3>Test 1: Hooks Module Loaded</h3>
+    <div id="test1">Testing...</div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 2: Basic Hook Registration and Execution</h3>
+    <button onclick="runTest2()">Run Test</button>
+    <div id="test2"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 3: Hook Priority</h3>
+    <button onclick="runTest3()">Run Test</button>
+    <div id="test3"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 4: Filter Hooks</h3>
+    <button onclick="runTest4()">Run Test</button>
+    <div id="test4"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 5: Async Hooks</h3>
+    <button onclick="runTest5()">Run Test</button>
+    <div id="test5"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 6: Hook Unregistration</h3>
+    <button onclick="runTest6()">Run Test</button>
+    <div id="test6"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 7: Multiple Hooks on Same Event</h3>
+    <button onclick="runTest7()">Run Test</button>
+    <div id="test7"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Output Log</h3>
+    <button onclick="clearOutput()">Clear Log</button>
+    <button onclick="runAllTests()">Run All Tests</button>
+    <div id="output"></div>
+  </div>
+
+  <!-- Load the hooks module -->
+  <script src="modules/hooks.js"></script>
+
+  <script>
+    // Test utilities
+    function pass(testId, message) {
+      document.getElementById(testId).innerHTML = `<span class="pass">✓ PASS</span>: ${message}`;
+      log(`[${testId}] PASS: ${message}`, 'pass');
+    }
+
+    function fail(testId, message) {
+      document.getElementById(testId).innerHTML = `<span class="fail">✗ FAIL</span>: ${message}`;
+      log(`[${testId}] FAIL: ${message}`, 'fail');
+    }
+
+    function log(message, type = 'info') {
+      const output = document.getElementById('output');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      output.appendChild(entry);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clearOutput() {
+      document.getElementById('output').innerHTML = '';
+    }
+
+    // Test 1: Check if Hooks is loaded
+    function runTest1() {
+      const testId = 'test1';
+      try {
+        if (typeof Hooks !== 'undefined' && Hooks.register && Hooks.execute) {
+          pass(testId, 'Hooks module loaded successfully');
+          return true;
+        } else {
+          fail(testId, 'Hooks module not found or incomplete');
+          return false;
+        }
+      } catch (error) {
+        fail(testId, `Error: ${error.message}`);
+        return false;
+      }
+    }
+
+    // Test 2: Basic registration and execution
+    function runTest2() {
+      const testId = 'test2';
+      try {
+        let executed = false;
+        const hookId = Hooks.register('test2Event', () => {
+          executed = true;
+          log('test2Event hook executed');
+        });
+
+        Hooks.executeSync('test2Event');
+
+        if (executed && typeof hookId === 'number') {
+          pass(testId, 'Hook registered and executed successfully');
+        } else {
+          fail(testId, 'Hook did not execute properly');
+        }
+
+        Hooks.unregister('test2Event', hookId);
+      } catch (error) {
+        fail(testId, `Error: ${error.message}`);
+      }
+    }
+
+    // Test 3: Priority ordering
+    function runTest3() {
+      const testId = 'test3';
+      try {
+        const executionOrder = [];
+
+        const id1 = Hooks.register('test3Event', () => {
+          executionOrder.push('low');
+          log('Low priority hook executed');
+        }, 1);
+
+        const id2 = Hooks.register('test3Event', () => {
+          executionOrder.push('high');
+          log('High priority hook executed');
+        }, 100);
+
+        const id3 = Hooks.register('test3Event', () => {
+          executionOrder.push('medium');
+          log('Medium priority hook executed');
+        }, 50);
+
+        Hooks.executeSync('test3Event');
+
+        const correct = executionOrder[0] === 'high' &&
+                       executionOrder[1] === 'medium' &&
+                       executionOrder[2] === 'low';
+
+        if (correct) {
+          pass(testId, `Hooks executed in priority order: ${executionOrder.join(' → ')}`);
+        } else {
+          fail(testId, `Wrong order: ${executionOrder.join(' → ')}`);
+        }
+
+        Hooks.clearEvent('test3Event');
+      } catch (error) {
+        fail(testId, `Error: ${error.message}`);
+      }
+    }
+
+    // Test 4: Filter hooks
+    function runTest4() {
+      const testId = 'test4';
+      try {
+        Hooks.register('test4Filter', (value) => {
+          log(`Filter hook 1: ${value} → ${value * 2}`);
+          return value * 2;
+        });
+
+        Hooks.register('test4Filter', (value) => {
+          log(`Filter hook 2: ${value} → ${value + 10}`);
+          return value + 10;
+        });
+
+        const result = Hooks.filter('test4Filter', 5);
+
+        if (result === 20) { // (5 * 2) + 10
+          pass(testId, `Filter applied correctly: 5 → ${result}`);
+        } else {
+          fail(testId, `Filter result incorrect: expected 20, got ${result}`);
+        }
+
+        Hooks.clearEvent('test4Filter');
+      } catch (error) {
+        fail(testId, `Error: ${error.message}`);
+      }
+    }
+
+    // Test 5: Async hooks
+    async function runTest5() {
+      const testId = 'test5';
+      try {
+        let asyncExecuted = false;
+
+        Hooks.register('test5AsyncEvent', async () => {
+          log('Async hook started');
+          await new Promise(resolve => setTimeout(resolve, 100));
+          asyncExecuted = true;
+          log('Async hook completed');
+        });
+
+        await Hooks.execute('test5AsyncEvent');
+
+        if (asyncExecuted) {
+          pass(testId, 'Async hook executed successfully');
+        } else {
+          fail(testId, 'Async hook did not execute');
+        }
+
+        Hooks.clearEvent('test5AsyncEvent');
+      } catch (error) {
+        fail(testId, `Error: ${error.message}`);
+      }
+    }
+
+    // Test 6: Unregistration
+    function runTest6() {
+      const testId = 'test6';
+      try {
+        let count = 0;
+
+        const hookId = Hooks.register('test6Event', () => {
+          count++;
+          log('Hook executed (should only happen once)');
+        });
+
+        Hooks.executeSync('test6Event');
+        const firstCount = count;
+
+        Hooks.unregister('test6Event', hookId);
+        Hooks.executeSync('test6Event');
+        const secondCount = count;
+
+        if (firstCount === 1 && secondCount === 1) {
+          pass(testId, 'Hook unregistered successfully');
+        } else {
+          fail(testId, `Hook executed ${secondCount} times after unregister`);
+        }
+      } catch (error) {
+        fail(testId, `Error: ${error.message}`);
+      }
+    }
+
+    // Test 7: Multiple hooks
+    function runTest7() {
+      const testId = 'test7';
+      try {
+        let count = 0;
+
+        Hooks.register('test7Event', () => { count++; log('Hook 1 executed'); });
+        Hooks.register('test7Event', () => { count++; log('Hook 2 executed'); });
+        Hooks.register('test7Event', () => { count++; log('Hook 3 executed'); });
+
+        Hooks.executeSync('test7Event');
+
+        if (count === 3) {
+          pass(testId, `All 3 hooks executed successfully`);
+        } else {
+          fail(testId, `Only ${count}/3 hooks executed`);
+        }
+
+        Hooks.clearEvent('test7Event');
+      } catch (error) {
+        fail(testId, `Error: ${error.message}`);
+      }
+    }
+
+    // Run all tests
+    async function runAllTests() {
+      clearOutput();
+      log('=== Starting all tests ===');
+
+      runTest1();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      runTest2();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      runTest3();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      runTest4();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      await runTest5();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      runTest6();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      runTest7();
+
+      log('=== All tests completed ===');
+    }
+
+    // Run test 1 immediately on load
+    window.addEventListener('load', () => {
+      runTest1();
+    });
+  </script>
+</body>
+</html>

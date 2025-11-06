@@ -216,6 +216,9 @@ function showUploadMessage(type, mapData, mapVersion) {
 
 async function parseLoadedData(data, mapVersion) {
   try {
+    // Hook: before load
+    await Hooks.execute('beforeLoad', data, mapVersion);
+
     // exit customization
     if (window.closeDialogs) closeDialogs();
     customization = 0;
@@ -738,6 +741,10 @@ async function parseLoadedData(data, mapVersion) {
 
     WARN && console.warn(`TOTAL: ${rn((performance.now() - uploadMap.timeStart) / 1000, 2)}s`);
     showStatistics();
+
+    // Hook: after load
+    await Hooks.execute('afterLoad', pack, grid, mapVersion);
+
     INFO && console.groupEnd("Loaded Map " + seed);
     tip("Map is successfully loaded", true, "success", 7000);
   } catch (error) {
