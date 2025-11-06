@@ -112,6 +112,14 @@ function getFeaturePath(feature) {
       return "";
     }
 
+    // Check cache first (if PathCache is available)
+    if (typeof PathCache !== 'undefined') {
+      const cached = PathCache.getFeaturePath(feature.i);
+      if (cached) {
+        return cached;
+      }
+    }
+
     if (!feature.vertices || !feature.vertices.length) {
       ERROR && console.error(`getFeaturePath: feature ${feature.i} has no vertices!`, feature);
       return "";
@@ -140,7 +148,9 @@ function getFeaturePath(feature) {
       return "";
     }
 
-    const simplifiedPoints = simplify(points, 0.3);
+    // Get simplification tolerance from adaptive quality settings if available
+    const tolerance = window.FMG_OPTIMIZATION_FLAGS?.simplificationTolerance || 0.3;
+    const simplifiedPoints = simplify(points, tolerance);
 
     if (!simplifiedPoints || simplifiedPoints.length < 3) {
       WARN && console.warn(`getFeaturePath: Feature ${feature.i} simplified to ${simplifiedPoints?.length || 0} points (need 3+)`);
@@ -165,6 +175,11 @@ function getFeaturePath(feature) {
     if (!path || path === "Z" || path.length < 5) {
       WARN && console.warn(`getFeaturePath: Feature ${feature.i} generated invalid path: "${path}"`);
       return "";
+    }
+
+    // Store in cache (if PathCache is available)
+    if (typeof PathCache !== 'undefined') {
+      PathCache.setFeaturePath(feature.i, path);
     }
 
     return path;
