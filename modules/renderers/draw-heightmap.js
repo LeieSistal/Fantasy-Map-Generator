@@ -109,6 +109,38 @@ function drawHeightmap() {
 function generateHeightmapPaths(paths, cells, vertices, used, heights, ocean, land, config) {
   TIME && console.log("drawHeightmap: Generating new paths");
 
+  // Helper functions for heightmap generation (scoped to avoid global conflicts)
+  function connectVerticesHeightmap(cells, vertices, start, h, used) {
+    const MAX_ITERATIONS = vertices.c.length;
+
+    const n = cells.i.length;
+    const chain = []; // vertices chain to form a path
+    for (let i = 0, current = start; i === 0 || (current !== start && i < MAX_ITERATIONS); i++) {
+      const prev = chain[chain.length - 1]; // previous vertex in chain
+      chain.push(current); // add current vertex to sequence
+      const c = vertices.c[current]; // cells adjacent to vertex
+      c.filter(c => cells.h[c] === h).forEach(c => (used[c] = 1));
+      const c0 = c[0] >= n || cells.h[c[0]] < h;
+      const c1 = c[1] >= n || cells.h[c[1]] < h;
+      const c2 = c[2] >= n || cells.h[c[2]] < h;
+      const v = vertices.v[current]; // neighboring vertices
+      if (v[0] !== prev && c0 !== c1) current = v[0];
+      else if (v[1] !== prev && c1 !== c2) current = v[1];
+      else if (v[2] !== prev && c0 !== c2) current = v[2];
+      if (current === chain[chain.length - 1]) {
+        ERROR && console.error("Next vertex is not found");
+        break;
+      }
+    }
+    return chain;
+  }
+
+  function simplifyLine(chain, simplification) {
+    if (!simplification) return chain;
+    const n = simplification + 1; // filter each nth element
+    return chain.filter((d, i) => i % n === 0);
+  }
+
   // ocean cells
   if (config.renderOcean) {
     const skip = config.oceanSkip + 1 || 1;
@@ -125,7 +157,7 @@ function generateHeightmapPaths(paths, cells, vertices, used, heights, ocean, la
       const onborder = cells.c[i].some(n => cells.h[n] < h);
       if (!onborder) continue;
       const vertex = cells.v[i].find(v => vertices.c[v].some(i => cells.h[i] < h));
-      const chain = connectVertices(cells, vertices, vertex, h, used);
+      const chain = connectVerticesHeightmap(cells, vertices, vertex, h, used);
       if (chain.length < 3) continue;
       const points = simplifyLine(chain, relax).map(v => vertices.p[v]);
       if (!paths[h]) paths[h] = "";
@@ -150,7 +182,7 @@ function generateHeightmapPaths(paths, cells, vertices, used, heights, ocean, la
       if (!onborder) continue;
 
       const startVertex = cells.v[i].find(v => vertices.c[v].some(i => cells.h[i] < h));
-      const chain = connectVertices(cells, vertices, startVertex, h, used);
+      const chain = connectVerticesHeightmap(cells, vertices, startVertex, h, used);
       if (chain.length < 3) continue;
 
       const points = simplifyLine(chain, relax).map(v => vertices.p[v]);
@@ -158,36 +190,4 @@ function generateHeightmapPaths(paths, cells, vertices, used, heights, ocean, la
       paths[h] += round(lineGen(points));
     }
   }
-}
-
-// connect vertices to chain: specific case for heightmap
-function connectVertices(cells, vertices, start, h, used) {
-  const MAX_ITERATIONS = vertices.c.length;
-
-  const n = cells.i.length;
-  const chain = []; // vertices chain to form a path
-  for (let i = 0, current = start; i === 0 || (current !== start && i < MAX_ITERATIONS); i++) {
-    const prev = chain[chain.length - 1]; // previous vertex in chain
-    chain.push(current); // add current vertex to sequence
-    const c = vertices.c[current]; // cells adjacent to vertex
-    c.filter(c => cells.h[c] === h).forEach(c => (used[c] = 1));
-    const c0 = c[0] >= n || cells.h[c[0]] < h;
-    const c1 = c[1] >= n || cells.h[c[1]] < h;
-    const c2 = c[2] >= n || cells.h[c[2]] < h;
-    const v = vertices.v[current]; // neighboring vertices
-    if (v[0] !== prev && c0 !== c1) current = v[0];
-    else if (v[1] !== prev && c1 !== c2) current = v[1];
-    else if (v[2] !== prev && c0 !== c2) current = v[2];
-    if (current === chain[chain.length - 1]) {
-      ERROR && console.error("Next vertex is not found");
-      break;
-    }
-  }
-  return chain;
-}
-
-function simplifyLine(chain, simplification) {
-  if (!simplification) return chain;
-  const n = simplification + 1; // filter each nth element
-  return chain.filter((d, i) => i % n === 0);
 }
