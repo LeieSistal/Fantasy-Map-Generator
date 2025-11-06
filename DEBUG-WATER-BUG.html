@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐛 Water Bug Debugger</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #000;
+      color: #0f0;
+      padding: 20px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    h1 {
+      font-size: 28px;
+      text-align: center;
+      margin-bottom: 20px;
+      color: #0ff;
+    }
+
+    .status {
+      background: #111;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+      border-left: 5px solid #666;
+      font-size: 18px;
+    }
+
+    .status.ok { border-left-color: #0f0; background: #001100; }
+    .status.bad { border-left-color: #f00; background: #110000; }
+    .status.warn { border-left-color: #ff0; background: #111100; }
+    .status.info { border-left-color: #0ff; background: #001111; }
+
+    .status h2 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    .big {
+      font-size: 36px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+
+    button {
+      width: 100%;
+      padding: 20px;
+      font-size: 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 15px 0;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    #logs {
+      background: #000;
+      border: 2px solid #333;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px 0;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    .log-line {
+      margin: 5px 0;
+      padding: 5px;
+      border-radius: 3px;
+    }
+
+    .log-info { color: #0ff; }
+    .log-warn { color: #ff0; background: #222200; }
+    .log-error { color: #f00; background: #220000; }
+    .log-log { color: #0f0; }
+
+    .hidden {
+      display: none;
+    }
+
+    .summary {
+      background: #222;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 15px 0;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #444;
+    }
+
+    .summary-item:last-child {
+      border-bottom: none;
+    }
+
+    .summary-label {
+      color: #aaa;
+    }
+
+    .summary-value {
+      color: #0f0;
+      font-weight: bold;
+    }
+
+    .summary-value.bad {
+      color: #f00;
+    }
+
+    .summary-value.good {
+      color: #0f0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐛 Water Bug Debugger</h1>
+
+  <button id="startBtn" onclick="startTest()">▶️ START DIAGNOSTIC</button>
+  <button id="restartBtn" class="hidden" onclick="location.reload()">🔄 RUN AGAIN</button>
+
+  <div id="results"></div>
+
+  <div id="logsContainer" class="hidden">
+    <h2 style="color: #0ff; margin: 20px 0 10px 0;">📋 Console Logs:</h2>
+    <div id="logs"></div>
+  </div>
+
+  <script>
+    const results = document.getElementById('results');
+    const logsContainer = document.getElementById('logsContainer');
+    const logsDiv = document.getElementById('logs');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+
+    const capturedLogs = [];
+
+    function show(title, message, status) {
+      const div = document.createElement('div');
+      div.className = `status ${status}`;
+      div.innerHTML = `<h2>${title}</h2><div>${message}</div>`;
+      results.appendChild(div);
+
+      // Auto-scroll to bottom
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function addLog(type, ...args) {
+      const timestamp = new Date().toLocaleTimeString();
+      const message = args.map(arg =>
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+
+      capturedLogs.push({ type, message, timestamp });
+
+      const logLine = document.createElement('div');
+      logLine.className = `log-line log-${type}`;
+      logLine.textContent = `[${timestamp}] ${message}`;
+      logsDiv.appendChild(logLine);
+
+      // Auto-scroll logs
+      logsDiv.scrollTop = logsDiv.scrollHeight;
+    }
+
+    function showSummary(data) {
+      const summaryHtml = `
+        <div class="summary">
+          <div class="summary-item">
+            <span class="summary-label">Template Used:</span>
+            <span class="summary-value">${data.template || 'N/A'}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Total Cells:</span>
+            <span class="summary-value">${data.totalCells || 'N/A'}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Land Cells:</span>
+            <span class="summary-value ${data.landCells > 0 ? 'good' : 'bad'}">${data.landCells || 0}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Water Cells:</span>
+            <span class="summary-value">${data.waterCells || 0}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Min Height:</span>
+            <span class="summary-value">${data.minHeight !== undefined ? data.minHeight : 'N/A'}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Max Height:</span>
+            <span class="summary-value ${data.maxHeight > 20 ? 'good' : 'bad'}">${data.maxHeight !== undefined ? data.maxHeight : 'N/A'}</span>
+          </div>
+        </div>
+      `;
+
+      show('📊 Generation Summary', summaryHtml, data.landCells > 0 ? 'ok' : 'bad');
+    }
+
+    async function startTest() {
+      startBtn.classList.add('hidden');
+      results.innerHTML = '';
+      logsDiv.innerHTML = '';
+      logsContainer.classList.remove('hidden');
+
+      show('⏳ Starting Test', 'Loading Fantasy Map Generator...', 'info');
+
+      // Create iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.top = '-9999px';
+      iframe.src = './index.html';
+      document.body.appendChild(iframe);
+
+      // Wait for load
+      await new Promise(resolve => {
+        iframe.onload = resolve;
+        setTimeout(resolve, 10000); // 10 second timeout
+      });
+
+      show('✅ Page Loaded', 'Waiting for map generation...', 'info');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      try {
+        const win = iframe.contentWindow;
+
+        // Intercept console logs
+        const originalConsole = {
+          log: win.console.log,
+          warn: win.console.warn,
+          error: win.console.error,
+          info: win.console.info
+        };
+
+        win.console.log = function(...args) {
+          addLog('log', ...args);
+          originalConsole.log.apply(win.console, args);
+        };
+
+        win.console.warn = function(...args) {
+          addLog('warn', ...args);
+          originalConsole.warn.apply(win.console, args);
+        };
+
+        win.console.error = function(...args) {
+          addLog('error', ...args);
+          originalConsole.error.apply(win.console, args);
+        };
+
+        win.console.info = function(...args) {
+          addLog('info', ...args);
+          originalConsole.info.apply(win.console, args);
+        };
+
+        // Wait a bit more for generation
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // Check grid.cells.h (heightmap)
+        const grid = win.grid;
+        if (!grid || !grid.cells || !grid.cells.h) {
+          show('❌ No Heightmap', 'grid.cells.h does not exist! Map generation failed.', 'bad');
+          restartBtn.classList.remove('hidden');
+          return;
+        }
+
+        const heights = grid.cells.h;
+        const totalCells = heights.length;
+        const landCells = Array.from(heights).filter(h => h >= 20).length;
+        const waterCells = totalCells - landCells;
+        const minHeight = Math.min(...heights);
+        const maxHeight = Math.max(...heights);
+
+        // Get template info
+        const templateInput = win.document.getElementById('templateInput');
+        const template = templateInput ? templateInput.value : 'unknown';
+
+        // Show summary
+        showSummary({
+          template,
+          totalCells,
+          landCells,
+          waterCells,
+          minHeight,
+          maxHeight
+        });
+
+        // Check results
+        if (landCells === 0) {
+          show('❌ BUG CONFIRMED',
+            '<div class="big">🐛</div>' +
+            'ALL CELLS ARE WATER!<br><br>' +
+            'The heightmap generator is creating only water cells.<br><br>' +
+            'Check the console logs above for details about what went wrong during generation.',
+            'bad');
+        } else {
+          const landPercent = ((landCells / totalCells) * 100).toFixed(1);
+          show('✅ LAND EXISTS',
+            `Found ${landCells} land cells (${landPercent}%).<br><br>` +
+            'The heightmap is generating correctly!',
+            'ok');
+
+          // Check if visible on screen
+          const svg = win.document.getElementById('map');
+          const landmass = svg ? svg.querySelector('#landmass') : null;
+
+          if (!landmass) {
+            show('⚠️ Visual Issue',
+              'Land exists in data but #landmass element not found.<br>' +
+              'This might be a rendering issue.',
+              'warn');
+          } else {
+            const paths = landmass.querySelectorAll('path');
+            if (paths.length === 0) {
+              show('⚠️ Visual Issue',
+                'Land exists but no paths rendered in #landmass.<br>' +
+                'Check if drawLayers() was called.',
+                'warn');
+            } else {
+              show('✅ Rendering OK',
+                `${paths.length} land paths rendered in SVG.`,
+                'ok');
+            }
+          }
+        }
+
+        // Show sample of heights
+        const sampleSize = Math.min(20, totalCells);
+        const sample = Array.from(heights).slice(0, sampleSize).join(', ');
+        show('🔬 Height Sample',
+          `First ${sampleSize} cells: [${sample}]<br><br>` +
+          '(Values ≥20 are land, <20 are water)',
+          'info');
+
+        // Check for relevant error messages
+        const errorLogs = capturedLogs.filter(log =>
+          log.type === 'error' &&
+          (log.message.includes('heightmap') || log.message.includes('HeightmapGenerator'))
+        );
+
+        if (errorLogs.length > 0) {
+          show('⚠️ Errors Found',
+            `Found ${errorLogs.length} error(s) related to heightmap generation. Check logs above.`,
+            'warn');
+        }
+
+      } catch (error) {
+        show('❌ Error', error.message, 'bad');
+        addLog('error', 'Test error:', error);
+      }
+
+      restartBtn.classList.remove('hidden');
+      show('✅ Test Complete', 'Scroll up to see all results and logs.', 'ok');
+    }
+  </script>
+</body>
+</html>
