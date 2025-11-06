@@ -23,6 +23,7 @@
     line-height: 1.6;
   `;
 
+  const DIAGNOSTIC_VERSION = "3.0.0";
   const results = [];
 
   function log(message, type = 'info') {
@@ -77,8 +78,29 @@
   document.body.appendChild(overlay);
   overlay.appendChild(closeBtn);
 
-  log('🔍 DIAGNOSTIC STARTED', 'success');
+  log(`🔍 DIAGNOSTIC v${DIAGNOSTIC_VERSION}`, 'success');
   log('Time: ' + new Date().toLocaleTimeString(), 'info');
+  log('');
+
+  // CHECK 0: Verify script versions
+  logSection('0️⃣ SCRIPT LOADING STATUS');
+
+  // Check if layers.js loaded at all
+  const layersJsMarker = window.__LAYERS_JS_LOADED__;
+  if (layersJsMarker) {
+    log(`✅ layers.js loaded (v${layersJsMarker})`, 'success');
+  } else {
+    log('❌ layers.js DID NOT LOAD! Script tag may be broken or file missing', 'error');
+  }
+
+  // Check if draw-features.js loaded
+  const drawFeaturesMarker = window.__DRAW_FEATURES_LOADED__;
+  if (drawFeaturesMarker) {
+    log(`✅ draw-features.js loaded (v${drawFeaturesMarker})`, 'success');
+  } else {
+    log('⚠️ draw-features.js version marker not found', 'warn');
+  }
+
   log('');
 
   // CHECK 1: Grid exists

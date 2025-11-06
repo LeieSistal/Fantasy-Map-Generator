@@ -1,5 +1,9 @@
 "use strict";
 
+// Version marker for diagnostics
+window.__DRAW_FEATURES_LOADED__ = "2.0.0";
+console.log("draw-features.js v2.0.0 loading...");
+
 function drawFeatures() {
   TIME && console.time("drawFeatures");
   INFO && console.log("drawFeatures: Starting...");

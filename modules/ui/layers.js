@@ -1,6 +1,10 @@
 // UI module stub to control map layers
 "use strict";
 
+// Version marker for diagnostics
+window.__LAYERS_JS_LOADED__ = "2.0.0";
+console.log("layers.js v2.0.0 loading...");
+
 // CRITICAL: Define drawLayers IMMEDIATELY as emergency fallback
 window.drawLayers = function() {
   console.log("drawLayers: Emergency fallback called");
@@ -257,6 +261,8 @@ window.drawLayers = function drawLayers() {
 
   INFO && console.log("drawLayers: Completed");
 };
+
+console.log("layers.js v2.0.0 - drawLayers fully defined");
 
 function toggleHeight(event) {
   if (customization === 1) return tip("You cannot turn off the layer when heightmap is in edit mode", false, "error");
