@@ -1,15 +1,34 @@
 // UI module stub to control map layers
 "use strict";
 
+// CRITICAL: Define drawLayers IMMEDIATELY as emergency fallback
+window.drawLayers = function() {
+  console.log("drawLayers: Emergency fallback called");
+  if (typeof drawFeatures === 'function') {
+    try {
+      drawFeatures();
+    } catch (e) {
+      console.error("drawLayers fallback: drawFeatures failed:", e);
+    }
+  } else {
+    console.error("drawLayers fallback: drawFeatures not available");
+  }
+};
+
 let presets = {}; // global object
 
 // Wrap in try-catch to prevent initialization errors from breaking the entire script
 try {
   restoreCustomPresets(); // run on-load
 } catch (error) {
-  ERROR && console.error("layers.js: Failed to restore custom presets during initialization:", error);
-  ERROR && console.error("This is non-critical - using default presets");
-  presets = getDefaultPresets(); // Fallback to defaults
+  console.error("layers.js: Failed to restore custom presets during initialization:", error);
+  console.error("This is non-critical - using default presets");
+  try {
+    presets = getDefaultPresets(); // Fallback to defaults
+  } catch (e) {
+    console.error("layers.js: Even getDefaultPresets failed:", e);
+    presets = {}; // Ultimate fallback
+  }
 }
 
 function getDefaultPresets() {
@@ -197,11 +216,16 @@ function getCurrentPreset() {
 }
 
 // run on each map generation
-function drawLayers() {
-  INFO && console.log("drawLayers: Starting...");
+// This replaces the emergency fallback
+window.drawLayers = function drawLayers() {
+  INFO && console.log("drawLayers: Starting (full version)...");
   INFO && console.log(`drawLayers: pack.features = ${pack?.features?.length || 'undefined'} features`);
 
-  drawFeatures();
+  try {
+    drawFeatures();
+  } catch (error) {
+    ERROR && console.error("drawLayers: drawFeatures failed:", error);
+  }
   if (layerIsOn("toggleTexture")) drawTexture();
   if (layerIsOn("toggleHeight")) drawHeightmap();
   if (layerIsOn("toggleBiomes")) drawBiomes();
@@ -230,7 +254,9 @@ function drawLayers() {
   if (layerIsOn("toggleRulers")) rulers.draw();
   // scale bar
   // vignette
-}
+
+  INFO && console.log("drawLayers: Completed");
+};
 
 function toggleHeight(event) {
   if (customization === 1) return tip("You cannot turn off the layer when heightmap is in edit mode", false, "error");
@@ -813,8 +839,6 @@ function drawRivers() {
   TIME && console.time("drawRivers");
   rivers.selectAll("*").remove();
 
-  const riverPaths = pack.rivers.map(({cells, points, i, widthFactor, sourceWidth}) => {
-    if (!cells || cells.length < 2) return;
   const {addMeandering, getRiverPath} = Rivers;
   lineGen.curve(d3.curveCatmullRom.alpha(0.1));
 
@@ -835,11 +859,6 @@ function drawRivers() {
       riverPoints = undefined;
     }
 
-    const meanderedPoints = Rivers.addMeandering(cells, points);
-    const path = Rivers.getRiverPath(meanderedPoints, widthFactor, sourceWidth);
-    return `<path id="river${i}" d="${path}"/>`;
-  });
-  rivers.html(riverPaths.join(""));
     const meanderedPoints = addMeandering(cells, riverPoints);
     const path = getRiverPath(meanderedPoints, widthFactor, sourceWidth);
     riverPaths[idx] = `<path id="river${i}" d="${path}"/>`;
