@@ -88,8 +88,28 @@ window.HeightmapGenerator = (function () {
 
   const generate = async function (graph) {
     TIME && console.time("defineHeightmap");
+
+    // Defensive checks
+    if (!graph) {
+      ERROR && console.error("HeightmapGenerator.generate(): graph is null or undefined!");
+      throw new Error("Cannot generate heightmap: graph parameter is missing");
+    }
+
+    if (typeof byId !== 'function') {
+      ERROR && console.error("HeightmapGenerator.generate(): byId function not available!");
+      throw new Error("Cannot generate heightmap: byId function not defined");
+    }
+
+    if (typeof heightmapTemplates !== 'object') {
+      ERROR && console.error("HeightmapGenerator.generate(): heightmapTemplates not loaded!");
+      throw new Error("Cannot generate heightmap: heightmapTemplates not available");
+    }
+
     const templateInput = byId("templateInput");
+    INFO && console.log(`HeightmapGenerator: templateInput element ${templateInput ? 'found' : 'NOT FOUND'}`);
+
     let id = templateInput ? templateInput.value : "";
+    INFO && console.log(`HeightmapGenerator: Initial template ID: "${id}"`);
 
     // Fallback to "continents" if templateInput is empty or invalid
     if (!id || (!heightmapTemplates[id] && !precreatedHeightmaps[id])) {
@@ -100,8 +120,20 @@ window.HeightmapGenerator = (function () {
 
     INFO && console.log(`HeightmapGenerator: Using template "${id}"`);
 
+    if (typeof aleaPRNG !== 'function') {
+      ERROR && console.error("HeightmapGenerator.generate(): aleaPRNG not available!");
+      throw new Error("Cannot generate heightmap: aleaPRNG function not defined");
+    }
+
+    if (typeof seed === 'undefined') {
+      ERROR && console.error("HeightmapGenerator.generate(): seed is undefined!");
+      throw new Error("Cannot generate heightmap: seed is not defined");
+    }
+
     Math.random = aleaPRNG(seed);
     const isTemplate = id in heightmapTemplates;
+    INFO && console.log(`HeightmapGenerator: Template type: ${isTemplate ? 'procedural template' : 'precreated image'}`);
+
     const heights = isTemplate ? fromTemplate(graph, id) : await fromPrecreated(graph, id);
 
     // Validate that heights were actually generated
