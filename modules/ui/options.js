@@ -526,7 +526,7 @@ function applyStoredOptions() {
     mapHeightInput.value = window.innerHeight;
   }
 
-  const heightmapId = stored("template");
+  const heightmapId = stored("template") || "continents"; // Default to "continents" if no template stored
   if (heightmapId) {
     const name = heightmapTemplates[heightmapId]?.name || precreatedHeightmaps[heightmapId]?.name || heightmapId;
     applyOption(byId("templateInput"), heightmapId, name);
