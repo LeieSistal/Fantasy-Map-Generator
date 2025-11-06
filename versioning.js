@@ -87,10 +87,10 @@ async function clearCache() {
 function parseMapVersion(version) {
   let [major, minor, patch] = version.split(".");
 
-  if (patch === undefined) {
-    // e.g. 1.732
-    minor = minor.slice(0, 2);
+  if (patch === undefined && minor && minor.length > 2) {
+    // e.g. 1.732 -> 1.73.2
     patch = minor.slice(2);
+    minor = minor.slice(0, 2);
   }
 
   // e.g. 0.7b
