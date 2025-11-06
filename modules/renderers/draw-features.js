@@ -103,21 +103,70 @@ function drawFeatures() {
 
 function getFeaturePath(feature) {
   try {
+    if (!feature) {
+      ERROR && console.error("getFeaturePath: feature is null/undefined");
+      return "";
+    }
+
+    if (!feature.vertices || !feature.vertices.length) {
+      ERROR && console.error(`getFeaturePath: feature ${feature.i} has no vertices!`, feature);
+      return "";
+    }
+
+    if (!pack.vertices || !pack.vertices.p) {
+      ERROR && console.error("getFeaturePath: pack.vertices.p does not exist!");
+      return "";
+    }
+
     const points = feature.vertices.map(vertex => pack.vertices.p[vertex]);
+
     if (points.some(point => point === undefined)) {
-      ERROR && console.error("Undefined point in getFeaturePath");
+      ERROR && console.error(`getFeaturePath: Undefined point in feature ${feature.i}. Vertices:`, feature.vertices);
+      ERROR && console.error(`pack.vertices.p length: ${pack.vertices.p.length}`);
+      return "";
+    }
+
+    if (typeof simplify !== 'function') {
+      ERROR && console.error("getFeaturePath: simplify function not defined!");
+      return "";
+    }
+
+    if (typeof clipPoly !== 'function') {
+      ERROR && console.error("getFeaturePath: clipPoly function not defined!");
       return "";
     }
 
     const simplifiedPoints = simplify(points, 0.3);
+
+    if (!simplifiedPoints || simplifiedPoints.length < 3) {
+      WARN && console.warn(`getFeaturePath: Feature ${feature.i} simplified to ${simplifiedPoints?.length || 0} points (need 3+)`);
+      return "";
+    }
+
     const clippedPoints = clipPoly(simplifiedPoints, 1);
+
+    if (!clippedPoints || clippedPoints.length < 3) {
+      WARN && console.warn(`getFeaturePath: Feature ${feature.i} clipped to ${clippedPoints?.length || 0} points (need 3+)`);
+      return "";
+    }
+
+    if (typeof d3 === 'undefined' || !d3.line) {
+      ERROR && console.error("getFeaturePath: d3.line not available!");
+      return "";
+    }
 
     const lineGen = d3.line().curve(d3.curveBasisClosed);
     const path = round(lineGen(clippedPoints)) + "Z";
 
+    if (!path || path === "Z" || path.length < 5) {
+      WARN && console.warn(`getFeaturePath: Feature ${feature.i} generated invalid path: "${path}"`);
+      return "";
+    }
+
     return path;
   } catch (error) {
-    ERROR && console.error("Error generating feature path:", error);
+    ERROR && console.error(`Error generating path for feature ${feature?.i}:`, error);
+    ERROR && console.error("Stack:", error.stack);
     return "";
   }
 }

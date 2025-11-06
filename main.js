@@ -322,7 +322,22 @@ async function generateMapOnLoad() {
   await applyStyleOnLoad(); // apply previously selected default or custom style
   await generate(); // generate map
   applyLayersPreset(); // apply saved layers preset and reder layers
-  drawLayers();
+
+  INFO && console.log("generateMapOnLoad: About to call drawLayers()");
+  INFO && console.log(`generateMapOnLoad: typeof drawLayers = ${typeof drawLayers}`);
+
+  if (typeof drawLayers !== 'function') {
+    ERROR && console.error("CRITICAL: drawLayers is not defined! Cannot render map.");
+    ERROR && console.error("This means modules/ui/layers.js did not load properly.");
+    // Call drawFeatures directly as fallback
+    if (typeof drawFeatures === 'function') {
+      WARN && console.warn("Calling drawFeatures() directly as fallback...");
+      drawFeatures();
+    }
+  } else {
+    drawLayers();
+  }
+
   fitMapToScreen();
   focusOn(); // based on searchParams focus on point, cell or burg from MFCG
   toggleAssistant();

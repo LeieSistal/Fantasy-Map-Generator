@@ -183,6 +183,9 @@ function getCurrentPreset() {
 
 // run on each map generation
 function drawLayers() {
+  INFO && console.log("drawLayers: Starting...");
+  INFO && console.log(`drawLayers: pack.features = ${pack?.features?.length || 'undefined'} features`);
+
   drawFeatures();
   if (layerIsOn("toggleTexture")) drawTexture();
   if (layerIsOn("toggleHeight")) drawHeightmap();
