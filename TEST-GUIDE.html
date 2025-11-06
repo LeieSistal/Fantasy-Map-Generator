@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test Guide - Fantasy Map Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 20px 0;
+        }
+        h1 { font-size: 2.5em; margin: 0 0 10px 0; }
+        h2 {
+            color: #4ade80;
+            border-bottom: 2px solid #4ade80;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        .test-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #60a5fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .test-item.critical { border-left-color: #ef4444; }
+        .test-item.important { border-left-color: #f59e0b; }
+        .test-item.optional { border-left-color: #10b981; }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .checklist li:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        .checklist li:before {
+            content: '☐ ';
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+        .checklist li.done:before {
+            content: '☑ ';
+            color: #4ade80;
+        }
+        .checklist li.done {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+        .btn {
+            display: inline-block;
+            background: #4ade80;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 10px 10px 10px 0;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #22c55e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+        }
+        .btn.secondary {
+            background: #64748b;
+        }
+        .btn.secondary:hover {
+            background: #475569;
+        }
+        code {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .success { color: #4ade80; }
+        .warning { color: #fbbf24; }
+        .error { color: #ef4444; }
+        .info { color: #60a5fa; }
+        .console-test {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .progress {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            background: #4ade80;
+            height: 30px;
+            border-radius: 5px;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Guide de Test - Fantasy Map Generator</h1>
+        <p>Suivez ces étapes pour tester toutes les corrections apportées</p>
+
+        <div class="progress">
+            <div class="progress-bar" id="progressBar" style="width: 0%">0%</div>
+        </div>
+
+        <a href="index.html" class="btn">🗺️ Ouvrir l'Application</a>
+        <a href="test-browser-simulation.html" class="btn secondary">🧪 Tests Automatiques</a>
+        <a href="CLEAR-CACHE.html" class="btn secondary">🧹 Clear Cache</a>
+
+        <!-- TEST 1: OUVERTURE -->
+        <div class="test-section">
+            <h2>📂 Test 1: Ouverture de l'Application</h2>
+            <div class="test-item critical">
+                <strong>🔴 CRITIQUE</strong>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Ouvrir http://127.0.0.1:8000 dans votre navigateur</li>
+                    <li onclick="toggleCheck(this)">La page se charge sans erreur 404</li>
+                    <li onclick="toggleCheck(this)">L'écran de chargement s'affiche</li>
+                    <li onclick="toggleCheck(this)">Une carte apparaît après quelques secondes</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TEST 2: CONSOLE -->
+        <div class="test-section">
+            <h2>🖥️ Test 2: Console du Navigateur</h2>
+            <div class="test-item critical">
+                <strong>🔴 CRITIQUE - Ouvrir DevTools (F12)</strong>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Appuyer sur F12 pour ouvrir DevTools</li>
+                    <li onclick="toggleCheck(this)">Aller dans l'onglet "Console"</li>
+                    <li onclick="toggleCheck(this)">Pas d'erreurs ROUGES critiques</li>
+                    <li onclick="toggleCheck(this)">Messages de timing visibles (TOTAL: ~X.XXs)</li>
+                </ul>
+            </div>
+
+            <div class="test-item important">
+                <strong>🟡 IMPORTANT - Vérifier les variables</strong>
+                <p>Dans la console, taper ces commandes:</p>
+                <div class="console-test">
+VERSION<br>
+<span class="success">// Devrait afficher: "1.108.12"</span><br><br>
+typeof drawFeatures<br>
+<span class="success">// Devrait afficher: "function"</span><br><br>
+typeof pack<br>
+<span class="success">// Devrait afficher: "object"</span>
+                </div>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">VERSION affiche "1.108.12"</li>
+                    <li onclick="toggleCheck(this)">drawFeatures est une "function"</li>
+                    <li onclick="toggleCheck(this)">pack est un "object"</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TEST 3: CARTE -->
+        <div class="test-section">
+            <h2>🗺️ Test 3: Génération de Carte</h2>
+            <div class="test-item critical">
+                <strong>🔴 CRITIQUE - Vérification Visuelle</strong>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Vous voyez des TERRES (zones colorées)</li>
+                    <li onclick="toggleCheck(this)">Vous voyez l'OCÉAN (zones bleues)</li>
+                    <li onclick="toggleCheck(this)">Vous voyez des PAYS (frontières visibles)</li>
+                    <li onclick="toggleCheck(this)">Vous voyez des VILLES (points/icônes)</li>
+                    <li onclick="toggleCheck(this)">Vous voyez des RIVIÈRES (lignes bleues)</li>
+                    <li onclick="toggleCheck(this)">Les labels (noms) s'affichent</li>
+                </ul>
+                <p class="warning">⚠️ Si vous ne voyez QUE l'océan → ÉCHEC (bug pas corrigé)</p>
+            </div>
+
+            <div class="test-item important">
+                <strong>🟡 Générer une Nouvelle Carte</strong>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Cliquer sur "Tools" ou le bouton hamburger (☰)</li>
+                    <li onclick="toggleCheck(this)">Cliquer sur "New Map!" ou appuyer sur Ctrl+R</li>
+                    <li onclick="toggleCheck(this)">Une nouvelle carte se génère (différente)</li>
+                    <li onclick="toggleCheck(this)">Pas d'erreur dans la console</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TEST 4: ZOOM & PAN -->
+        <div class="test-section">
+            <h2>🔍 Test 4: Zoom et Pan</h2>
+            <div class="test-item important">
+                <strong>🟡 Navigation</strong>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Zoom avec la molette de souris (fonctionnel)</li>
+                    <li onclick="toggleCheck(this)">Zoom fluide sans lag</li>
+                    <li onclick="toggleCheck(this)">Pan avec cliquer-glisser (fonctionnel)</li>
+                    <li onclick="toggleCheck(this)">Pan fluide sans lag</li>
+                    <li onclick="toggleCheck(this)">Les labels disparaissent/apparaissent selon le zoom</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TEST 5: UI CONTROLS -->
+        <div class="test-section">
+            <h2>🎛️ Test 5: Contrôles UI</h2>
+            <div class="test-item important">
+                <strong>🟡 Menu Layers</strong>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Cliquer sur "Layers" (bouton avec des couches)</li>
+                    <li onclick="toggleCheck(this)">Le menu Layers s'ouvre</li>
+                    <li onclick="toggleCheck(this)">Toggle "Borders" ON/OFF (frontières apparaissent/disparaissent)</li>
+                    <li onclick="toggleCheck(this)">Toggle "Rivers" ON/OFF (rivières apparaissent/disparaissent)</li>
+                    <li onclick="toggleCheck(this)">Toggle "Labels" ON/OFF (noms apparaissent/disparaissent)</li>
+                </ul>
+            </div>
+
+            <div class="test-item optional">
+                <strong>🟢 Menu Options</strong>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Cliquer sur "Options" (⚙️)</li>
+                    <li onclick="toggleCheck(this)">Le menu Options s'ouvre</li>
+                    <li onclick="toggleCheck(this)">Les paramètres sont visibles et accessibles</li>
+                </ul>
+            </div>
+
+            <div class="test-item optional">
+                <strong>🟢 Menu Style</strong>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Cliquer sur "Style" (🎨)</li>
+                    <li onclick="toggleCheck(this)">Changer un style (ex: "Heightmap", "Political")</li>
+                    <li onclick="toggleCheck(this)">La carte change d'apparence</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TEST 6: GESTION ERREURS -->
+        <div class="test-section">
+            <h2>🛡️ Test 6: Gestion d'Erreurs (Nouveau!)</h2>
+            <div class="test-item important">
+                <strong>🟡 Test de Robustesse</strong>
+                <p>Ces tests vérifient que les corrections fonctionnent:</p>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Générer 5 cartes différentes (Ctrl+R × 5)</li>
+                    <li onclick="toggleCheck(this)">Aucun crash visible</li>
+                    <li onclick="toggleCheck(this)">Dans la console: pas d'erreurs "Critical error in drawFeatures"</li>
+                    <li onclick="toggleCheck(this)">Si erreur "Failed to draw feature X" → skip et continue (NORMAL)</li>
+                </ul>
+                <p class="info">ℹ️ Les nouvelles corrections permettent de skip les features problématiques au lieu de crasher</p>
+            </div>
+        </div>
+
+        <!-- TEST 7: PERFORMANCE -->
+        <div class="test-section">
+            <h2>⚡ Test 7: Performance</h2>
+            <div class="test-item optional">
+                <strong>🟢 Test de Performance</strong>
+                <p>Dans la console, taper:</p>
+                <div class="console-test">
+perf.logMetrics()<br>
+<span class="info">// Affiche les métriques de performance</span>
+                </div>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Exécuter perf.logMetrics() dans la console</li>
+                    <li onclick="toggleCheck(this)">Vérifier "svgElementsTotal" (nombre d'éléments)</li>
+                    <li onclick="toggleCheck(this)">Génération de carte < 5 secondes</li>
+                    <li onclick="toggleCheck(this)">Zoom/Pan fluide (pas de lag majeur)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TEST 8: CACHE FIX -->
+        <div class="test-section">
+            <h2>🧹 Test 8: Cache Fix (Bonus)</h2>
+            <div class="test-item optional">
+                <strong>🟢 Tester l'Outil de Nettoyage</strong>
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">Ouvrir CLEAR-CACHE.html</li>
+                    <li onclick="toggleCheck(this)">Cliquer "Clear All Cache"</li>
+                    <li onclick="toggleCheck(this)">Vérifier qu'il détecte et supprime les caches</li>
+                    <li onclick="toggleCheck(this)">Recharger l'application (Ctrl+Shift+R)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- RÉSULTAT FINAL -->
+        <div class="test-section" style="background: rgba(74, 222, 128, 0.2); border: 2px solid #4ade80;">
+            <h2>✅ Résultat Final</h2>
+            <div id="finalResult">
+                <p>Complétez les tests ci-dessus pour voir votre score!</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="index.html" class="btn">🗺️ Retour à l'Application</a>
+            <button onclick="resetTests()" class="btn secondary">🔄 Reset Tests</button>
+        </div>
+    </div>
+
+    <script>
+        function toggleCheck(element) {
+            element.classList.toggle('done');
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const total = document.querySelectorAll('.checklist li').length;
+            const completed = document.querySelectorAll('.checklist li.done').length;
+            const percentage = Math.round((completed / total) * 100);
+
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = percentage + '%';
+
+            // Update final result
+            const finalResult = document.getElementById('finalResult');
+            if (percentage === 100) {
+                finalResult.innerHTML = `
+                    <h3 class="success">🎉 TOUS LES TESTS COMPLÉTÉS! 🎉</h3>
+                    <p>Félicitations! L'application fonctionne parfaitement.</p>
+                    <p><strong>Score: ${completed}/${total} (100%)</strong></p>
+                    <p class="info">✅ Toutes les corrections sont fonctionnelles</p>
+                    <p class="info">✅ L'application est prête pour le déploiement</p>
+                `;
+            } else if (percentage >= 80) {
+                finalResult.innerHTML = `
+                    <h3 class="success">🌟 Excellent! (${percentage}%)</h3>
+                    <p><strong>Score: ${completed}/${total}</strong></p>
+                    <p>L'application fonctionne très bien!</p>
+                `;
+            } else if (percentage >= 50) {
+                finalResult.innerHTML = `
+                    <h3 class="warning">⚠️ Bon, mais incomplet (${percentage}%)</h3>
+                    <p><strong>Score: ${completed}/${total}</strong></p>
+                    <p>Continuez les tests pour valider toutes les fonctionnalités.</p>
+                `;
+            } else {
+                finalResult.innerHTML = `
+                    <h3 class="info">🧪 Tests en cours... (${percentage}%)</h3>
+                    <p><strong>Score: ${completed}/${total}</strong></p>
+                    <p>Complétez les tests critiques en premier!</p>
+                `;
+            }
+        }
+
+        function resetTests() {
+            document.querySelectorAll('.checklist li.done').forEach(el => {
+                el.classList.remove('done');
+            });
+            updateProgress();
+        }
+
+        // Initialize
+        updateProgress();
+    </script>
+</body>
+</html>
