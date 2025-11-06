@@ -22,17 +22,36 @@ window.HeightmapGenerator = (function () {
   };
 
   const fromTemplate = (graph, id) => {
-    const templateString = heightmapTemplates[id]?.template || "";
+    const template = heightmapTemplates[id];
+    if (!template) {
+      ERROR && console.error(`Template "${id}" not found in heightmapTemplates`);
+      throw new Error(`Heightmap template not found: ${id}`);
+    }
+
+    const templateString = template.template || "";
+    if (!templateString) {
+      ERROR && console.error(`Template "${id}" has no template string`);
+      throw new Error(`Heightmap template has no template string: ${id}`);
+    }
+
     const steps = templateString.split("\n");
+    INFO && console.log(`fromTemplate: Processing template "${id}" with ${steps.length} steps`);
 
     if (!steps.length) throw new Error(`Heightmap template: no steps. Template: ${id}. Steps: ${steps}`);
     setGraph(graph);
 
     for (const step of steps) {
       const elements = step.trim().split(" ");
-      if (elements.length < 2) throw new Error(`Heightmap template: steps < 2. Template: ${id}. Step: ${elements}`);
+      if (elements.length < 2) {
+        WARN && console.warn(`Skipping invalid step in template "${id}": "${step}"`);
+        continue;
+      }
       addStep(...elements);
     }
+
+    // Verify heights were modified
+    const landCells = heights.filter(h => h >= 20).length;
+    INFO && console.log(`fromTemplate: After processing "${id}", ${landCells}/${heights.length} cells are land`);
 
     return heights;
   };
@@ -69,18 +88,74 @@ window.HeightmapGenerator = (function () {
 
   const generate = async function (graph) {
     TIME && console.time("defineHeightmap");
-    let id = byId("templateInput").value;
+
+    // Defensive checks
+    if (!graph) {
+      ERROR && console.error("HeightmapGenerator.generate(): graph is null or undefined!");
+      throw new Error("Cannot generate heightmap: graph parameter is missing");
+    }
+
+    if (typeof byId !== 'function') {
+      ERROR && console.error("HeightmapGenerator.generate(): byId function not available!");
+      throw new Error("Cannot generate heightmap: byId function not defined");
+    }
+
+    if (typeof heightmapTemplates !== 'object') {
+      ERROR && console.error("HeightmapGenerator.generate(): heightmapTemplates not loaded!");
+      throw new Error("Cannot generate heightmap: heightmapTemplates not available");
+    }
+
+    const templateInput = byId("templateInput");
+    INFO && console.log(`HeightmapGenerator: templateInput element ${templateInput ? 'found' : 'NOT FOUND'}`);
+
+    let id = templateInput ? templateInput.value : "";
+    INFO && console.log(`HeightmapGenerator: Initial template ID: "${id}"`);
 
     // Fallback to "continents" if templateInput is empty or invalid
     if (!id || (!heightmapTemplates[id] && !precreatedHeightmaps[id])) {
       WARN && console.warn(`Invalid or empty template ID: "${id}". Using default: "continents"`);
       id = "continents";
-      byId("templateInput").value = id; // Update the input to reflect the fallback
+      if (templateInput) templateInput.value = id; // Update the input to reflect the fallback
+    }
+
+    INFO && console.log(`HeightmapGenerator: Using template "${id}"`);
+
+    if (typeof aleaPRNG !== 'function') {
+      ERROR && console.error("HeightmapGenerator.generate(): aleaPRNG not available!");
+      throw new Error("Cannot generate heightmap: aleaPRNG function not defined");
+    }
+
+    if (typeof seed === 'undefined') {
+      ERROR && console.error("HeightmapGenerator.generate(): seed is undefined!");
+      throw new Error("Cannot generate heightmap: seed is not defined");
     }
 
     Math.random = aleaPRNG(seed);
     const isTemplate = id in heightmapTemplates;
+    INFO && console.log(`HeightmapGenerator: Template type: ${isTemplate ? 'procedural template' : 'precreated image'}`);
+
     const heights = isTemplate ? fromTemplate(graph, id) : await fromPrecreated(graph, id);
+
+    // Validate that heights were actually generated
+    if (!heights || heights.length === 0) {
+      ERROR && console.error("HeightmapGenerator: No heights generated!");
+      throw new Error("Failed to generate heightmap: heights array is empty");
+    }
+
+    // Check if all heights are zero (all water)
+    const maxHeight = Math.max(...heights);
+    const minHeight = Math.min(...heights);
+    const landCells = heights.filter(h => h >= 20).length;
+    const waterCells = heights.filter(h => h < 20).length;
+
+    INFO && console.log(`HeightmapGenerator: Generated ${heights.length} cells. Land: ${landCells}, Water: ${waterCells}, Min: ${minHeight}, Max: ${maxHeight}`);
+
+    if (landCells === 0) {
+      ERROR && console.error("HeightmapGenerator: ALL CELLS ARE WATER! This is a bug!");
+      console.error("Template used:", id);
+      console.error("Heights sample:", heights.slice(0, 100));
+    }
+
     TIME && console.timeEnd("defineHeightmap");
 
     clearData();

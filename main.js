@@ -319,13 +319,74 @@ async function checkLoadParameters() {
 }
 
 async function generateMapOnLoad() {
-  await applyStyleOnLoad(); // apply previously selected default or custom style
-  await generate(); // generate map
-  applyLayersPreset(); // apply saved layers preset and reder layers
-  drawLayers();
-  fitMapToScreen();
-  focusOn(); // based on searchParams focus on point, cell or burg from MFCG
-  toggleAssistant();
+  INFO && console.log("generateMapOnLoad: Starting...");
+
+  try {
+    await applyStyleOnLoad(); // apply previously selected default or custom style
+    INFO && console.log("generateMapOnLoad: Style applied");
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: applyStyleOnLoad failed:", error);
+  }
+
+  try {
+    await generate(); // generate map
+    INFO && console.log("generateMapOnLoad: Map generated");
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: generate failed:", error);
+    throw error; // Re-throw to show error dialog
+  }
+
+  try {
+    INFO && console.log("generateMapOnLoad: About to call applyLayersPreset()");
+    applyLayersPreset(); // apply saved layers preset and render layers
+    INFO && console.log("generateMapOnLoad: Layers preset applied");
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: applyLayersPreset failed:", error);
+    ERROR && console.error("Stack:", error.stack);
+    // Continue anyway - try to render even if preset fails
+  }
+
+  INFO && console.log("generateMapOnLoad: About to call drawLayers()");
+  INFO && console.log(`generateMapOnLoad: typeof drawLayers = ${typeof drawLayers}`);
+
+  if (typeof drawLayers !== 'function') {
+    ERROR && console.error("CRITICAL: drawLayers is not defined! Cannot render map.");
+    ERROR && console.error("This means modules/ui/layers.js did not load properly.");
+    // Call drawFeatures directly as fallback
+    if (typeof drawFeatures === 'function') {
+      WARN && console.warn("Calling drawFeatures() directly as fallback...");
+      drawFeatures();
+    }
+  } else {
+    try {
+      drawLayers();
+      INFO && console.log("generateMapOnLoad: drawLayers completed");
+    } catch (error) {
+      ERROR && console.error("generateMapOnLoad: drawLayers failed:", error);
+      ERROR && console.error("Stack:", error.stack);
+    }
+  }
+
+  try {
+    fitMapToScreen();
+    INFO && console.log("generateMapOnLoad: Fitted to screen");
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: fitMapToScreen failed:", error);
+  }
+
+  try {
+    focusOn(); // based on searchParams focus on point, cell or burg from MFCG
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: focusOn failed:", error);
+  }
+
+  try {
+    toggleAssistant();
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: toggleAssistant failed:", error);
+  }
+
+  INFO && console.log("generateMapOnLoad: Complete");
 }
 
 // focus on coordinates, cell or burg provided in searchParams
@@ -692,7 +753,20 @@ async function generate(options) {
 
     if (shouldRegenerateGrid(grid, precreatedSeed)) grid = precreatedGraph || generateGrid();
     else delete grid.cells.h;
-    grid.cells.h = await HeightmapGenerator.generate(grid);
+
+    INFO && console.log("Calling HeightmapGenerator.generate()...");
+    try {
+      grid.cells.h = await HeightmapGenerator.generate(grid);
+      if (!grid.cells.h || grid.cells.h.length === 0) {
+        throw new Error("HeightmapGenerator.generate() returned empty or null heightmap");
+      }
+      INFO && console.log(`Heightmap generated successfully: ${grid.cells.h.length} cells`);
+    } catch (heightmapError) {
+      ERROR && console.error("CRITICAL: HeightmapGenerator.generate() failed:", heightmapError);
+      ERROR && console.error("Stack trace:", heightmapError.stack);
+      throw new Error(`Failed to generate heightmap: ${heightmapError.message}`);
+    }
+
     pack = {}; // reset pack
 
     Features.markupGrid();
@@ -735,6 +809,56 @@ async function generate(options) {
 
     WARN && console.warn(`TOTAL: ${rn((performance.now() - timeStart) / 1000, 2)}s`);
     showStatistics();
+
+    // Auto-diagnostic to help debug "only water visible" issues
+    if (INFO) {
+      console.group("🔍 Post-Generation Diagnostic");
+
+      // Check heightmap
+      if (grid && grid.cells && grid.cells.h) {
+        const heights = grid.cells.h;
+        const landCells = Array.from(heights).filter(h => h >= 20).length;
+        const waterCells = heights.length - landCells;
+        console.log(`✅ Heightmap: ${heights.length} cells (Land: ${landCells}, Water: ${waterCells})`);
+
+        if (landCells === 0) {
+          console.error("❌ BUG DETECTED: ALL CELLS ARE WATER! This is the heightmap generation bug.");
+        }
+      } else {
+        console.error("❌ BUG: grid.cells.h does not exist!");
+      }
+
+      // Check pack features
+      if (pack && pack.features) {
+        const islands = pack.features.filter(f => f && f.type === 'island').length;
+        const lakes = pack.features.filter(f => f && f.type === 'lake').length;
+        console.log(`✅ Features: ${pack.features.length} total (Islands: ${islands}, Lakes: ${lakes})`);
+
+        if (islands === 0) {
+          console.error("❌ BUG DETECTED: NO LAND FEATURES! Only ocean will be visible.");
+        }
+      } else {
+        console.error("❌ BUG: pack.features does not exist!");
+      }
+
+      // Check rendered paths (after a short delay to let rendering complete)
+      setTimeout(() => {
+        const paths = document.querySelectorAll('#featurePaths path').length;
+        if (paths > 0) {
+          console.log(`✅ Rendering: ${paths} feature paths in DOM`);
+        } else {
+          console.error("❌ BUG: No paths rendered to DOM! drawFeatures() may have failed.");
+        }
+
+        console.log("If you see only water but the checks above pass, try:");
+        console.log("  • Toggle layer visibility buttons (Relief, Heightmap, etc.)");
+        console.log("  • Hard reload the page (clear cache)");
+        console.log("  • Check if #landmass has display:none in CSS");
+
+        console.groupEnd();
+      }, 500);
+    }
+
     INFO && console.groupEnd("Generated Map " + seed);
   } catch (error) {
     ERROR && console.error(error);
