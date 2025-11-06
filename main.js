@@ -319,9 +319,32 @@ async function checkLoadParameters() {
 }
 
 async function generateMapOnLoad() {
-  await applyStyleOnLoad(); // apply previously selected default or custom style
-  await generate(); // generate map
-  applyLayersPreset(); // apply saved layers preset and reder layers
+  INFO && console.log("generateMapOnLoad: Starting...");
+
+  try {
+    await applyStyleOnLoad(); // apply previously selected default or custom style
+    INFO && console.log("generateMapOnLoad: Style applied");
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: applyStyleOnLoad failed:", error);
+  }
+
+  try {
+    await generate(); // generate map
+    INFO && console.log("generateMapOnLoad: Map generated");
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: generate failed:", error);
+    throw error; // Re-throw to show error dialog
+  }
+
+  try {
+    INFO && console.log("generateMapOnLoad: About to call applyLayersPreset()");
+    applyLayersPreset(); // apply saved layers preset and render layers
+    INFO && console.log("generateMapOnLoad: Layers preset applied");
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: applyLayersPreset failed:", error);
+    ERROR && console.error("Stack:", error.stack);
+    // Continue anyway - try to render even if preset fails
+  }
 
   INFO && console.log("generateMapOnLoad: About to call drawLayers()");
   INFO && console.log(`generateMapOnLoad: typeof drawLayers = ${typeof drawLayers}`);
@@ -335,12 +358,35 @@ async function generateMapOnLoad() {
       drawFeatures();
     }
   } else {
-    drawLayers();
+    try {
+      drawLayers();
+      INFO && console.log("generateMapOnLoad: drawLayers completed");
+    } catch (error) {
+      ERROR && console.error("generateMapOnLoad: drawLayers failed:", error);
+      ERROR && console.error("Stack:", error.stack);
+    }
   }
 
-  fitMapToScreen();
-  focusOn(); // based on searchParams focus on point, cell or burg from MFCG
-  toggleAssistant();
+  try {
+    fitMapToScreen();
+    INFO && console.log("generateMapOnLoad: Fitted to screen");
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: fitMapToScreen failed:", error);
+  }
+
+  try {
+    focusOn(); // based on searchParams focus on point, cell or burg from MFCG
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: focusOn failed:", error);
+  }
+
+  try {
+    toggleAssistant();
+  } catch (error) {
+    ERROR && console.error("generateMapOnLoad: toggleAssistant failed:", error);
+  }
+
+  INFO && console.log("generateMapOnLoad: Complete");
 }
 
 // focus on coordinates, cell or burg provided in searchParams
