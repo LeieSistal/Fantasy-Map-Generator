@@ -38,7 +38,7 @@ window.HeightmapGenerator = (function () {
   };
 
   const fromPrecreated = (graph, id) => {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       // create canvas where 1px corresponts to a cell
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -58,12 +58,25 @@ window.HeightmapGenerator = (function () {
         img.remove();
         resolve(heights);
       };
+      img.onerror = () => {
+        ERROR && console.error(`Failed to load precreated heightmap: ${id}`);
+        canvas.remove();
+        img.remove();
+        reject(new Error(`Heightmap image not found: ./heightmaps/${id}.png`));
+      };
     });
   };
 
   const generate = async function (graph) {
     TIME && console.time("defineHeightmap");
-    const id = byId("templateInput").value;
+    let id = byId("templateInput").value;
+
+    // Fallback to "continents" if templateInput is empty or invalid
+    if (!id || (!heightmapTemplates[id] && !precreatedHeightmaps[id])) {
+      WARN && console.warn(`Invalid or empty template ID: "${id}". Using default: "continents"`);
+      id = "continents";
+      byId("templateInput").value = id; // Update the input to reflect the fallback
+    }
 
     Math.random = aleaPRNG(seed);
     const isTemplate = id in heightmapTemplates;
