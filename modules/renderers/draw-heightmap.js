@@ -55,6 +55,7 @@ function drawHeightmap() {
   }
 
   // Render paths (paths already generated or retrieved from cache)
+  const renderOceanCells = currentConfig.renderOcean;
 
   // render paths
   for (const height of d3.range(0, 101)) {
@@ -161,32 +162,32 @@ function generateHeightmapPaths(paths, cells, vertices, used, heights, ocean, la
 
 // connect vertices to chain: specific case for heightmap
 function connectVertices(cells, vertices, start, h, used) {
-    const MAX_ITERATIONS = vertices.c.length;
+  const MAX_ITERATIONS = vertices.c.length;
 
-    const n = cells.i.length;
-    const chain = []; // vertices chain to form a path
-    for (let i = 0, current = start; i === 0 || (current !== start && i < MAX_ITERATIONS); i++) {
-      const prev = chain[chain.length - 1]; // previous vertex in chain
-      chain.push(current); // add current vertex to sequence
-      const c = vertices.c[current]; // cells adjacent to vertex
-      c.filter(c => cells.h[c] === h).forEach(c => (used[c] = 1));
-      const c0 = c[0] >= n || cells.h[c[0]] < h;
-      const c1 = c[1] >= n || cells.h[c[1]] < h;
-      const c2 = c[2] >= n || cells.h[c[2]] < h;
-      const v = vertices.v[current]; // neighboring vertices
-      if (v[0] !== prev && c0 !== c1) current = v[0];
-      else if (v[1] !== prev && c1 !== c2) current = v[1];
-      else if (v[2] !== prev && c0 !== c2) current = v[2];
-      if (current === chain[chain.length - 1]) {
-        ERROR && console.error("Next vertex is not found");
-        break;
-      }
+  const n = cells.i.length;
+  const chain = []; // vertices chain to form a path
+  for (let i = 0, current = start; i === 0 || (current !== start && i < MAX_ITERATIONS); i++) {
+    const prev = chain[chain.length - 1]; // previous vertex in chain
+    chain.push(current); // add current vertex to sequence
+    const c = vertices.c[current]; // cells adjacent to vertex
+    c.filter(c => cells.h[c] === h).forEach(c => (used[c] = 1));
+    const c0 = c[0] >= n || cells.h[c[0]] < h;
+    const c1 = c[1] >= n || cells.h[c[1]] < h;
+    const c2 = c[2] >= n || cells.h[c[2]] < h;
+    const v = vertices.v[current]; // neighboring vertices
+    if (v[0] !== prev && c0 !== c1) current = v[0];
+    else if (v[1] !== prev && c1 !== c2) current = v[1];
+    else if (v[2] !== prev && c0 !== c2) current = v[2];
+    if (current === chain[chain.length - 1]) {
+      ERROR && console.error("Next vertex is not found");
+      break;
     }
-    return chain;
   }
+  return chain;
+}
 
-  function simplifyLine(chain, simplification) {
-    if (!simplification) return chain;
-    const n = simplification + 1; // filter each nth element
-    return chain.filter((d, i) => i % n === 0);
-  }
+function simplifyLine(chain, simplification) {
+  if (!simplification) return chain;
+  const n = simplification + 1; // filter each nth element
+  return chain.filter((d, i) => i % n === 0);
+}
