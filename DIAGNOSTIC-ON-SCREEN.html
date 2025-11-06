@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fantasy Map Generator - On-Screen Diagnostics</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .status-card {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 5px solid #ccc;
+    }
+
+    .status-card.loading {
+      border-left-color: #ffc107;
+    }
+
+    .status-card.success {
+      border-left-color: #28a745;
+      background: #d4edda;
+    }
+
+    .status-card.error {
+      border-left-color: #dc3545;
+      background: #f8d7da;
+    }
+
+    .status-card.warning {
+      border-left-color: #ff9800;
+      background: #fff3cd;
+    }
+
+    .status-card h3 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-card .detail {
+      font-size: 14px;
+      margin: 8px 0;
+      padding: 8px;
+      background: white;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .status-card .detail strong {
+      color: #667eea;
+    }
+
+    .icon {
+      font-size: 24px;
+    }
+
+    .button {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      transition: transform 0.2s;
+    }
+
+    .button:active {
+      transform: scale(0.98);
+    }
+
+    .log-container {
+      background: #1e1e1e;
+      color: #00ff00;
+      border-radius: 10px;
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+
+    .log-entry {
+      margin: 4px 0;
+      padding: 4px;
+      border-left: 3px solid #00ff00;
+      padding-left: 10px;
+    }
+
+    .log-entry.error {
+      color: #ff5555;
+      border-left-color: #ff5555;
+    }
+
+    .log-entry.warning {
+      color: #ffaa00;
+      border-left-color: #ffaa00;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔍 Diagnostic en direct</h1>
+      <p>On-Screen Debugging for iPad</p>
+    </div>
+
+    <div class="content">
+      <div id="status-container"></div>
+
+      <button class="button" onclick="runDiagnostics()">
+        🚀 Lancer le diagnostic / Run Diagnostics
+      </button>
+
+      <div class="log-container" id="log" style="display:none;">
+        <div style="margin-bottom: 10px; border-bottom: 1px solid #00ff00; padding-bottom: 5px;">
+          📋 JOURNAL DE DÉBOGAGE / DEBUG LOG
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const statusContainer = document.getElementById('status-container');
+    const logContainer = document.getElementById('log');
+    let testResults = [];
+
+    function log(message, type = 'info') {
+      console.log(message);
+      logContainer.style.display = 'block';
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function addStatusCard(title, icon, status, details) {
+      const card = document.createElement('div');
+      card.className = `status-card ${status}`;
+
+      let detailsHTML = '';
+      if (details) {
+        detailsHTML = Object.keys(details).map(key =>
+          `<div class="detail"><strong>${key}:</strong> ${details[key]}</div>`
+        ).join('');
+      }
+
+      card.innerHTML = `
+        <h3><span class="icon">${icon}</span> ${title}</h3>
+        ${detailsHTML}
+      `;
+
+      statusContainer.appendChild(card);
+      return card;
+    }
+
+    function clearStatus() {
+      statusContainer.innerHTML = '';
+      logContainer.innerHTML = `
+        <div style="margin-bottom: 10px; border-bottom: 1px solid #00ff00; padding-bottom: 5px;">
+          📋 JOURNAL DE DÉBOGAGE / DEBUG LOG
+        </div>
+      `;
+    }
+
+    async function runDiagnostics() {
+      clearStatus();
+      testResults = [];
+      log('=== DÉBUT DES DIAGNOSTICS / STARTING DIAGNOSTICS ===');
+
+      // Test 1: Environment Check
+      log('Test 1: Vérification de l\'environnement...');
+      const envCard = addStatusCard(
+        'Environnement / Environment',
+        '🌍',
+        'loading',
+        {
+          'User Agent': navigator.userAgent.substring(0, 50) + '...',
+          'Viewport': `${window.innerWidth}x${window.innerHeight}`,
+          'Date/Heure': new Date().toLocaleString()
+        }
+      );
+      log('✓ Environnement vérifié');
+
+      // Test 2: Load Main Page in Hidden Frame
+      log('Test 2: Chargement de la page principale...');
+      const loadCard = addStatusCard(
+        'Chargement de index.html',
+        '📄',
+        'loading',
+        {'Status': 'Chargement en cours...'}
+      );
+
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = './index.html';
+      document.body.appendChild(iframe);
+
+      await new Promise((resolve) => {
+        iframe.onload = () => {
+          log('✓ Page principale chargée');
+          resolve();
+        };
+        iframe.onerror = () => {
+          log('✗ ERREUR: Impossible de charger la page', 'error');
+          resolve();
+        };
+        setTimeout(resolve, 5000); // Timeout after 5 seconds
+      });
+
+      // Wait for scripts to load
+      log('Attente du chargement des scripts...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      try {
+        const win = iframe.contentWindow;
+        const doc = iframe.contentDocument;
+
+        // Test 3: Check Global Variables
+        log('Test 3: Vérification des variables globales...');
+
+        const VERSION = win.VERSION;
+        const PRODUCTION = win.PRODUCTION;
+        const drawFeatures = win.drawFeatures;
+        const pack = win.pack;
+
+        const varsCard = addStatusCard(
+          'Variables Globales',
+          '📊',
+          VERSION ? 'success' : 'error',
+          {
+            'VERSION': VERSION || '❌ MANQUANT',
+            'PRODUCTION': PRODUCTION !== undefined ? String(PRODUCTION) : '❌ MANQUANT',
+            'drawFeatures()': typeof drawFeatures === 'function' ? '✓ Définie' : '❌ MANQUANTE',
+            'pack': pack ? '✓ Existe' : '❌ MANQUANT'
+          }
+        );
+
+        if (!VERSION) {
+          log('✗ ERREUR CRITIQUE: VERSION non définie!', 'error');
+          testResults.push({test: 'VERSION', result: false, critical: true});
+        } else {
+          log(`✓ VERSION trouvée: ${VERSION}`);
+          testResults.push({test: 'VERSION', result: true});
+        }
+
+        if (typeof drawFeatures !== 'function') {
+          log('✗ ERREUR CRITIQUE: drawFeatures() non définie!', 'error');
+          testResults.push({test: 'drawFeatures', result: false, critical: true});
+        } else {
+          log('✓ drawFeatures() trouvée');
+          testResults.push({test: 'drawFeatures', result: true});
+        }
+
+        // Test 4: Check Service Worker
+        log('Test 4: Vérification du Service Worker...');
+        const sw = await navigator.serviceWorker.getRegistrations();
+        const swCard = addStatusCard(
+          'Service Worker',
+          '⚙️',
+          sw.length === 0 ? 'success' : 'warning',
+          {
+            'Registrations': sw.length === 0 ? '✓ Aucune (désactivé)' : `⚠️ ${sw.length} active(s)`,
+            'Status': sw.length === 0 ? 'Correctement désactivé' : 'DEVRAIT être désactivé!'
+          }
+        );
+
+        if (sw.length > 0) {
+          log(`⚠️ ATTENTION: ${sw.length} Service Worker(s) encore actif(s)!`, 'warning');
+          log('Cela peut causer des problèmes de cache', 'warning');
+          testResults.push({test: 'Service Worker', result: false, warning: true});
+        } else {
+          log('✓ Service Worker correctement désactivé');
+          testResults.push({test: 'Service Worker', result: true});
+        }
+
+        // Test 5: Check pack.features
+        log('Test 5: Vérification de pack.features...');
+
+        if (pack && pack.features) {
+          const featureCount = pack.features.length;
+          const nonOceanFeatures = pack.features.filter(f => f && f.type !== 'ocean').length;
+          const oceanFeatures = pack.features.filter(f => f && f.type === 'ocean').length;
+
+          const featuresCard = addStatusCard(
+            'pack.features',
+            '🗺️',
+            nonOceanFeatures > 0 ? 'success' : 'error',
+            {
+              'Total features': featureCount,
+              'Non-ocean (terres/lacs)': nonOceanFeatures > 0 ? `✓ ${nonOceanFeatures}` : '❌ 0',
+              'Ocean': oceanFeatures,
+              'Status': nonOceanFeatures > 0 ? 'DONNÉES OK' : '❌ PAS DE TERRES!'
+            }
+          );
+
+          if (nonOceanFeatures === 0) {
+            log('✗ ERREUR CRITIQUE: Aucune terre dans pack.features!', 'error');
+            log('Le générateur ne crée que de l\'océan!', 'error');
+            testResults.push({test: 'pack.features', result: false, critical: true});
+          } else {
+            log(`✓ pack.features OK: ${nonOceanFeatures} terres/lacs`);
+            testResults.push({test: 'pack.features', result: true});
+          }
+        } else {
+          log('✗ ERREUR CRITIQUE: pack.features n\'existe pas!', 'error');
+          addStatusCard(
+            'pack.features',
+            '🗺️',
+            'error',
+            {'Status': '❌ NON DÉFINI'}
+          );
+          testResults.push({test: 'pack.features', result: false, critical: true});
+        }
+
+        // Test 6: Check SVG Elements
+        log('Test 6: Vérification des éléments SVG...');
+
+        const svg = doc.getElementById('map');
+        const defs = svg ? svg.querySelector('defs') : null;
+        const featurePaths = defs ? defs.querySelector('#featurePaths') : null;
+        const land = defs ? defs.querySelector('#land') : null;
+        const water = defs ? defs.querySelector('#water') : null;
+
+        const svgCard = addStatusCard(
+          'Éléments SVG',
+          '🎨',
+          svg && featurePaths ? 'success' : 'error',
+          {
+            '#map (SVG principal)': svg ? '✓ Existe' : '❌ MANQUANT',
+            '#featurePaths': featurePaths ? `✓ Existe (${featurePaths.children.length} paths)` : '❌ MANQUANT',
+            '#land': land ? '✓ Existe' : '❌ MANQUANT',
+            '#water': water ? '✓ Existe' : '❌ MANQUANT'
+          }
+        );
+
+        if (!svg) {
+          log('✗ ERREUR CRITIQUE: SVG #map non trouvé!', 'error');
+          testResults.push({test: 'SVG', result: false, critical: true});
+        } else if (!featurePaths) {
+          log('✗ ERREUR CRITIQUE: #featurePaths non trouvé!', 'error');
+          testResults.push({test: 'SVG', result: false, critical: true});
+        } else if (featurePaths.children.length === 0) {
+          log('✗ ERREUR CRITIQUE: #featurePaths est vide!', 'error');
+          log('drawFeatures() n\'a pas ajouté de paths!', 'error');
+          testResults.push({test: 'SVG', result: false, critical: true});
+        } else {
+          log(`✓ SVG OK: ${featurePaths.children.length} paths dessinés`);
+          testResults.push({test: 'SVG', result: true});
+        }
+
+        // Test 7: Check for JavaScript Errors
+        log('Test 7: Vérification des erreurs JavaScript...');
+
+        let hasErrors = false;
+        const originalError = win.console.error;
+        const errors = [];
+
+        win.console.error = function(...args) {
+          errors.push(args.join(' '));
+          hasErrors = true;
+          originalError.apply(win.console, args);
+        };
+
+        if (errors.length > 0) {
+          log(`⚠️ ${errors.length} erreur(s) JavaScript détectée(s)`, 'warning');
+          errors.forEach(err => log(`  → ${err}`, 'error'));
+          testResults.push({test: 'JavaScript Errors', result: false, warning: true});
+        } else {
+          log('✓ Aucune erreur JavaScript détectée');
+          testResults.push({test: 'JavaScript Errors', result: true});
+        }
+
+      } catch (error) {
+        log(`✗ ERREUR lors des tests: ${error.message}`, 'error');
+        addStatusCard(
+          'Erreur Critique',
+          '💥',
+          'error',
+          {'Message': error.message}
+        );
+      }
+
+      // Summary
+      log('=== FIN DES DIAGNOSTICS / END DIAGNOSTICS ===');
+
+      const criticalFailures = testResults.filter(t => t.critical && !t.result);
+      const warnings = testResults.filter(t => t.warning && !t.result);
+      const passed = testResults.filter(t => t.result).length;
+      const total = testResults.length;
+
+      let summaryStatus = 'success';
+      let summaryIcon = '✅';
+      let summaryTitle = 'Tous les tests réussis!';
+
+      if (criticalFailures.length > 0) {
+        summaryStatus = 'error';
+        summaryIcon = '❌';
+        summaryTitle = `${criticalFailures.length} erreur(s) critique(s)`;
+      } else if (warnings.length > 0) {
+        summaryStatus = 'warning';
+        summaryIcon = '⚠️';
+        summaryTitle = `${warnings.length} avertissement(s)`;
+      }
+
+      addStatusCard(
+        summaryTitle,
+        summaryIcon,
+        summaryStatus,
+        {
+          'Tests réussis': `${passed}/${total}`,
+          'Erreurs critiques': criticalFailures.length,
+          'Avertissements': warnings.length
+        }
+      );
+
+      log(`Résumé: ${passed}/${total} tests réussis`);
+
+      if (criticalFailures.length > 0) {
+        log('PROBLÈME IDENTIFIÉ:', 'error');
+        criticalFailures.forEach(f => {
+          log(`  ❌ ${f.test}`, 'error');
+        });
+      }
+    }
+
+    // Auto-run on load
+    window.addEventListener('load', () => {
+      log('Page de diagnostic chargée');
+    });
+  </script>
+</body>
+</html>
