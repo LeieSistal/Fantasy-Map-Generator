@@ -2,7 +2,15 @@
 "use strict";
 
 let presets = {}; // global object
-restoreCustomPresets(); // run on-load
+
+// Wrap in try-catch to prevent initialization errors from breaking the entire script
+try {
+  restoreCustomPresets(); // run on-load
+} catch (error) {
+  ERROR && console.error("layers.js: Failed to restore custom presets during initialization:", error);
+  ERROR && console.error("This is non-critical - using default presets");
+  presets = getDefaultPresets(); // Fallback to defaults
+}
 
 function getDefaultPresets() {
   return {
@@ -92,7 +100,14 @@ function restoreCustomPresets() {
 
   for (const preset in storedPresets) {
     if (presets[preset]) continue;
-    layersPreset.add(new Option(preset, preset));
+
+    // Check if layersPreset element exists before trying to use it
+    const layersPresetElement = byId("layersPreset");
+    if (layersPresetElement) {
+      layersPresetElement.add(new Option(preset, preset));
+    } else {
+      WARN && console.warn(`layers.js: layersPreset element not found, skipping preset "${preset}"`);
+    }
   }
 
   presets = storedPresets;
