@@ -1,7 +1,22 @@
 "use strict";
 
+// Cache for heightmap paths to improve re-rendering performance
+const heightmapCache = {
+  paths: null,
+  config: null,
+  clear() {
+    this.paths = null;
+    this.config = null;
+  },
+  isValid(currentConfig) {
+    if (!this.paths || !this.config) return false;
+    return JSON.stringify(this.config) === JSON.stringify(currentConfig);
+  }
+};
+
 function drawHeightmap() {
   TIME && console.time("drawHeightmap");
+  const perfStart = performance.now();
 
   const ocean = terrs.select("#oceanHeights");
   const land = terrs.select("#landHeights");
@@ -9,61 +24,37 @@ function drawHeightmap() {
   ocean.selectAll("*").remove();
   land.selectAll("*").remove();
 
-  const paths = new Array(101);
-  const {cells, vertices} = grid;
-  const used = new Uint8Array(cells.i.length);
-  const heights = Array.from(cells.i).sort((a, b) => cells.h[a] - cells.h[b]);
+  // Configuration for caching
+  const currentConfig = {
+    oceanSkip: +ocean.attr("skip"),
+    oceanRelax: +ocean.attr("relax"),
+    oceanCurve: ocean.attr("curve"),
+    landSkip: +land.attr("skip"),
+    landRelax: +land.attr("relax"),
+    landCurve: land.attr("curve"),
+    renderOcean: Boolean(+ocean.attr("data-render"))
+  };
 
-  // ocean cells
-  const renderOceanCells = Boolean(+ocean.attr("data-render"));
-  if (renderOceanCells) {
-    const skip = +ocean.attr("skip") + 1 || 1;
-    const relax = +ocean.attr("relax") || 0;
-    lineGen.curve(d3[ocean.attr("curve") || "curveBasisClosed"]);
+  // Check if we can use cached paths
+  let paths;
+  if (heightmapCache.isValid(currentConfig)) {
+    TIME && console.log("drawHeightmap: Using cached paths");
+    paths = heightmapCache.paths;
+  } else {
+    // Generate new paths
+    paths = new Array(101);
+    const {cells, vertices} = grid;
+    const used = new Uint8Array(cells.i.length);
+    const heights = Array.from(cells.i).sort((a, b) => cells.h[a] - cells.h[b]);
 
-    let currentLayer = 0;
-    for (const i of heights) {
-      const h = cells.h[i];
-      if (h > currentLayer) currentLayer += skip;
-      if (h < currentLayer) continue;
-      if (currentLayer >= 20) break;
-      if (used[i]) continue; // already marked
-      const onborder = cells.c[i].some(n => cells.h[n] < h);
-      if (!onborder) continue;
-      const vertex = cells.v[i].find(v => vertices.c[v].some(i => cells.h[i] < h));
-      const chain = connectVertices(cells, vertices, vertex, h, used);
-      if (chain.length < 3) continue;
-      const points = simplifyLine(chain, relax).map(v => vertices.p[v]);
-      if (!paths[h]) paths[h] = "";
-      paths[h] += round(lineGen(points));
-    }
+    generateHeightmapPaths(paths, cells, vertices, used, heights, ocean, land, currentConfig);
+
+    // Cache the results
+    heightmapCache.paths = paths;
+    heightmapCache.config = currentConfig;
   }
 
-  // land cells
-  {
-    const skip = +land.attr("skip") + 1 || 1;
-    const relax = +land.attr("relax") || 0;
-    lineGen.curve(d3[land.attr("curve") || "curveBasisClosed"]);
-
-    let currentLayer = 20;
-    for (const i of heights) {
-      const h = cells.h[i];
-      if (h > currentLayer) currentLayer += skip;
-      if (h < currentLayer) continue;
-      if (currentLayer > 100) break; // no layers possible with height > 100
-      if (used[i]) continue; // already marked
-      const onborder = cells.c[i].some(n => cells.h[n] < h);
-      if (!onborder) continue;
-
-      const startVertex = cells.v[i].find(v => vertices.c[v].some(i => cells.h[i] < h));
-      const chain = connectVertices(cells, vertices, startVertex, h, used);
-      if (chain.length < 3) continue;
-
-      const points = simplifyLine(chain, relax).map(v => vertices.p[v]);
-      if (!paths[h]) paths[h] = "";
-      paths[h] += round(lineGen(points));
-    }
-  }
+  // Render paths (paths already generated or retrieved from cache)
 
   // render paths
   for (const height of d3.range(0, 101)) {
@@ -108,8 +99,68 @@ function drawHeightmap() {
     }
   }
 
-  // connect vertices to chain: specific case for heightmap
-  function connectVertices(cells, vertices, start, h, used) {
+  const perfEnd = performance.now();
+  TIME && console.timeEnd("drawHeightmap");
+  TIME && console.log(`drawHeightmap: Rendered in ${(perfEnd - perfStart).toFixed(2)}ms`);
+}
+
+// Extract path generation logic for better organization
+function generateHeightmapPaths(paths, cells, vertices, used, heights, ocean, land, config) {
+  TIME && console.log("drawHeightmap: Generating new paths");
+
+  // ocean cells
+  if (config.renderOcean) {
+    const skip = config.oceanSkip + 1 || 1;
+    const relax = config.oceanRelax || 0;
+    lineGen.curve(d3[config.oceanCurve || "curveBasisClosed"]);
+
+    let currentLayer = 0;
+    for (const i of heights) {
+      const h = cells.h[i];
+      if (h > currentLayer) currentLayer += skip;
+      if (h < currentLayer) continue;
+      if (currentLayer >= 20) break;
+      if (used[i]) continue; // already marked
+      const onborder = cells.c[i].some(n => cells.h[n] < h);
+      if (!onborder) continue;
+      const vertex = cells.v[i].find(v => vertices.c[v].some(i => cells.h[i] < h));
+      const chain = connectVertices(cells, vertices, vertex, h, used);
+      if (chain.length < 3) continue;
+      const points = simplifyLine(chain, relax).map(v => vertices.p[v]);
+      if (!paths[h]) paths[h] = "";
+      paths[h] += round(lineGen(points));
+    }
+  }
+
+  // land cells
+  {
+    const skip = config.landSkip + 1 || 1;
+    const relax = config.landRelax || 0;
+    lineGen.curve(d3[config.landCurve || "curveBasisClosed"]);
+
+    let currentLayer = 20;
+    for (const i of heights) {
+      const h = cells.h[i];
+      if (h > currentLayer) currentLayer += skip;
+      if (h < currentLayer) continue;
+      if (currentLayer > 100) break; // no layers possible with height > 100
+      if (used[i]) continue; // already marked
+      const onborder = cells.c[i].some(n => cells.h[n] < h);
+      if (!onborder) continue;
+
+      const startVertex = cells.v[i].find(v => vertices.c[v].some(i => cells.h[i] < h));
+      const chain = connectVertices(cells, vertices, startVertex, h, used);
+      if (chain.length < 3) continue;
+
+      const points = simplifyLine(chain, relax).map(v => vertices.p[v]);
+      if (!paths[h]) paths[h] = "";
+      paths[h] += round(lineGen(points));
+    }
+  }
+}
+
+// connect vertices to chain: specific case for heightmap
+function connectVertices(cells, vertices, start, h, used) {
     const MAX_ITERATIONS = vertices.c.length;
 
     const n = cells.i.length;
@@ -139,6 +190,3 @@ function drawHeightmap() {
     const n = simplification + 1; // filter each nth element
     return chain.filter((d, i) => i % n === 0);
   }
-
-  TIME && console.timeEnd("drawHeightmap");
-}

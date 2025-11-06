@@ -1,4 +1,17 @@
 "use strict";
+
+// Throttle helper for performance
+function throttle(func, limit) {
+  let inThrottle;
+  return function(...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
 function editReliefIcon() {
   if (customization) return;
   closeDialogs(".stable");
@@ -134,11 +147,13 @@ function editReliefIcon() {
       positions.push(box.y + box.height);
     });
 
-    d3.event.on("drag", function () {
-      const p = d3.mouse(this);
+    // Throttled drag handler to reduce DOM operations
+    const throttledDrag = throttle(function (p) {
       moveCircle(p[0], p[1], r);
 
-      d3.range(Math.ceil(r / 10)).forEach(function () {
+      // Reduce icon generation rate for better performance
+      const iconCount = Math.ceil(r / 15); // Reduced from r/10
+      d3.range(iconCount).forEach(function () {
         const a = Math.PI * 2 * Math.random();
         const rad = r * Math.random();
         const cx = p[0] + rad * Math.cos(a);
@@ -168,6 +183,11 @@ function editReliefIcon() {
           .attr("width", s)
           .attr("height", s);
       });
+    }, 16); // Throttle to ~60fps
+
+    d3.event.on("drag", function () {
+      const p = d3.mouse(this);
+      throttledDrag(p);
     });
   }
 
@@ -198,10 +218,20 @@ function editReliefIcon() {
       tree.add([x, y, this]);
     });
 
+    // Throttled remove handler
+    const throttledRemove = throttle(function (p) {
+      moveCircle(p[0], p[1], r);
+      const found = tree.findAll(p[0], p[1], r);
+      found.forEach(f => {
+        f[2].remove();
+        // Remove from quadtree to avoid re-finding it
+        tree.remove([f[0], f[1], f[2]]);
+      });
+    }, 16); // Throttle to ~60fps
+
     d3.event.on("drag", function () {
       const p = d3.mouse(this);
-      moveCircle(p[0], p[1], r);
-      tree.findAll(p[0], p[1], r).forEach(f => f[2].remove());
+      throttledRemove(p);
     });
   }
 

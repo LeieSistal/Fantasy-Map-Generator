@@ -162,6 +162,9 @@ window.CanvasRenderer = (function() {
       // Different rendering strategies based on layer type
       switch (layerId) {
         case 'terrain':
+          await renderTerrainLayer(layer);
+          break;
+
         case 'heightmap':
         case 'biomes':
           await renderPolygonLayer(layer);
@@ -190,7 +193,92 @@ window.CanvasRenderer = (function() {
   }
 
   /**
-   * Render polygon-based layer (terrain, biomes, etc.)
+   * Render terrain layer (relief icons)
+   */
+  async function renderTerrainLayer(layer) {
+    const useElements = layer.querySelectorAll('use');
+
+    // Get the SVG document to resolve symbol references
+    const svg = document.getElementById('map');
+    if (!svg) return;
+
+    for (const use of useElements) {
+      const href = use.getAttribute('href') || use.getAttribute('xlink:href');
+      if (!href) continue;
+
+      const x = parseFloat(use.getAttribute('x')) || 0;
+      const y = parseFloat(use.getAttribute('y')) || 0;
+      const width = parseFloat(use.getAttribute('width')) || 10;
+      const height = parseFloat(use.getAttribute('height')) || 10;
+
+      // Try to resolve the symbol and render it
+      // For performance, we can render a simplified version or skip if too complex
+      const symbolId = href.replace('#', '');
+      const symbol = svg.querySelector(`#${symbolId}`);
+
+      if (symbol) {
+        // Render the symbol content to canvas
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(width / 100, height / 100); // Assuming 100x100 viewBox for symbols
+
+        // Draw symbol paths
+        const paths = symbol.querySelectorAll('path, polygon, rect, circle');
+        for (const shape of paths) {
+          await renderShape(shape);
+        }
+
+        ctx.restore();
+      }
+    }
+  }
+
+  /**
+   * Render individual shape element
+   */
+  async function renderShape(shape) {
+    const fill = getComputedStyle(shape).fill;
+    const stroke = getComputedStyle(shape).stroke;
+    const strokeWidth = parseFloat(getComputedStyle(shape).strokeWidth) || 0;
+
+    ctx.beginPath();
+
+    // Handle different shape types
+    if (shape.tagName === 'path') {
+      const d = shape.getAttribute('d');
+      if (d) {
+        const pathData = parseSVGPath(d);
+        drawPath(pathData);
+      }
+    } else if (shape.tagName === 'rect') {
+      const x = parseFloat(shape.getAttribute('x')) || 0;
+      const y = parseFloat(shape.getAttribute('y')) || 0;
+      const w = parseFloat(shape.getAttribute('width')) || 0;
+      const h = parseFloat(shape.getAttribute('height')) || 0;
+      ctx.rect(x, y, w, h);
+    } else if (shape.tagName === 'circle') {
+      const cx = parseFloat(shape.getAttribute('cx')) || 0;
+      const cy = parseFloat(shape.getAttribute('cy')) || 0;
+      const r = parseFloat(shape.getAttribute('r')) || 0;
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    }
+
+    // Fill
+    if (fill && fill !== 'none') {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+
+    // Stroke
+    if (stroke && stroke !== 'none' && strokeWidth > 0) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = strokeWidth;
+      ctx.stroke();
+    }
+  }
+
+  /**
+   * Render polygon-based layer (biomes, etc.)
    */
   async function renderPolygonLayer(layer) {
     // Get all paths in layer
