@@ -692,7 +692,20 @@ async function generate(options) {
 
     if (shouldRegenerateGrid(grid, precreatedSeed)) grid = precreatedGraph || generateGrid();
     else delete grid.cells.h;
-    grid.cells.h = await HeightmapGenerator.generate(grid);
+
+    INFO && console.log("Calling HeightmapGenerator.generate()...");
+    try {
+      grid.cells.h = await HeightmapGenerator.generate(grid);
+      if (!grid.cells.h || grid.cells.h.length === 0) {
+        throw new Error("HeightmapGenerator.generate() returned empty or null heightmap");
+      }
+      INFO && console.log(`Heightmap generated successfully: ${grid.cells.h.length} cells`);
+    } catch (heightmapError) {
+      ERROR && console.error("CRITICAL: HeightmapGenerator.generate() failed:", heightmapError);
+      ERROR && console.error("Stack trace:", heightmapError.stack);
+      throw new Error(`Failed to generate heightmap: ${heightmapError.message}`);
+    }
+
     pack = {}; // reset pack
 
     Features.markupGrid();

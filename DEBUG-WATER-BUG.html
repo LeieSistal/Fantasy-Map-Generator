@@ -266,13 +266,74 @@
           originalConsole.info.apply(win.console, args);
         };
 
-        // Wait a bit more for generation
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Trigger generation if not already running
+        show('🔄 Generating Map', 'Triggering new map generation...', 'info');
+        try {
+          if (typeof win.generate === 'function') {
+            win.generate().catch(err => {
+              addLog('error', 'Generation error:', err);
+            });
+          }
+        } catch (e) {
+          addLog('error', 'Failed to call generate():', e);
+        }
+
+        // Wait for generation to complete
+        show('⏳ Waiting', 'Waiting for generation to complete (up to 30 seconds)...', 'info');
+        let attempts = 0;
+        const maxAttempts = 30;
+
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          attempts++;
+
+          // Check if heightmap exists
+          if (win.grid && win.grid.cells && win.grid.cells.h) {
+            show('✅ Heightmap Found', `Found after ${attempts} seconds`, 'ok');
+            break;
+          }
+
+          addLog('info', `Waiting... ${attempts}/${maxAttempts} seconds`);
+        }
+
+        if (attempts >= maxAttempts) {
+          show('⚠️ Timeout', 'Generation took longer than expected. Checking current state...', 'warn');
+        }
+
+        // Check for critical errors in logs
+        const criticalErrors = capturedLogs.filter(log =>
+          log.type === 'error' &&
+          (log.message.includes('CRITICAL') ||
+           log.message.includes('HeightmapGenerator') ||
+           log.message.includes('Failed to generate'))
+        );
+
+        if (criticalErrors.length > 0) {
+          show('❌ Critical Errors Found',
+            `Found ${criticalErrors.length} critical error(s):<br><br>` +
+            criticalErrors.map(log => `• ${log.message}`).join('<br><br>'),
+            'bad');
+        }
 
         // Check grid.cells.h (heightmap)
         const grid = win.grid;
-        if (!grid || !grid.cells || !grid.cells.h) {
-          show('❌ No Heightmap', 'grid.cells.h does not exist! Map generation failed.', 'bad');
+        if (!grid) {
+          show('❌ No Grid', 'Grid object does not exist! Map generation completely failed.', 'bad');
+          restartBtn.classList.remove('hidden');
+          return;
+        }
+
+        if (!grid.cells) {
+          show('❌ No Cells', 'grid.cells does not exist! Grid initialization failed.', 'bad');
+          restartBtn.classList.remove('hidden');
+          return;
+        }
+
+        if (!grid.cells.h) {
+          show('❌ No Heightmap',
+            'grid.cells.h does not exist! HeightmapGenerator.generate() failed.<br><br>' +
+            'Check the error logs above for details about what went wrong.',
+            'bad');
           restartBtn.classList.remove('hidden');
           return;
         }
