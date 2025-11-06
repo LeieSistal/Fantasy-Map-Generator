@@ -221,12 +221,17 @@ function getCurrentPreset() {
 
 // run on each map generation
 // This replaces the emergency fallback
-window.drawLayers = function drawLayers() {
+window.drawLayers = async function drawLayers() {
   INFO && console.log("drawLayers: Starting (full version)...");
   INFO && console.log(`drawLayers: pack.features = ${pack?.features?.length || 'undefined'} features`);
 
+  // Hook: before layers render
+  await Hooks.execute('beforeLayersRender', pack, grid);
+
   try {
+    await Hooks.execute('beforeLayerRender', 'features');
     drawFeatures();
+    await Hooks.execute('afterLayerRender', 'features');
   } catch (error) {
     ERROR && console.error("drawLayers: drawFeatures failed:", error);
   }
@@ -258,6 +263,12 @@ window.drawLayers = function drawLayers() {
   if (layerIsOn("toggleRulers")) rulers.draw();
   // scale bar
   // vignette
+
+  // Hook: custom layer rendering
+  await Hooks.execute('customLayerRender', pack, grid);
+
+  // Hook: after all layers rendered
+  await Hooks.execute('afterLayersRender', pack, grid);
 
   INFO && console.log("drawLayers: Completed");
 };

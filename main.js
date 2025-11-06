@@ -744,6 +744,9 @@ async function generate(options) {
     const timeStart = performance.now();
     const {seed: precreatedSeed, graph: precreatedGraph} = options || {};
 
+    // Hook: before generation starts
+    await Hooks.execute('beforeGenerate', options);
+
     invokeActiveZooming();
     setSeed(precreatedSeed);
     INFO && console.group("Generated Map " + seed);
@@ -767,6 +770,9 @@ async function generate(options) {
       throw new Error(`Failed to generate heightmap: ${heightmapError.message}`);
     }
 
+    // Hook: after heightmap generated
+    await Hooks.execute('afterHeightmapGenerated', grid.cells.h, grid);
+
     pack = {}; // reset pack
 
     Features.markupGrid();
@@ -783,13 +789,28 @@ async function generate(options) {
     Features.markupPack();
     createDefaultRuler();
 
+    // Hook: after features generated
+    await Hooks.execute('afterFeaturesGenerated', pack.features, pack);
+
     Rivers.generate();
+
+    // Hook: after rivers generated
+    await Hooks.execute('afterRiversGenerated', pack.rivers, pack);
+
     Biomes.define();
 
     rankCells();
     Cultures.generate();
     Cultures.expand();
+
+    // Hook: after cultures generated
+    await Hooks.execute('afterCulturesGenerated', pack.cultures, pack);
+
     BurgsAndStates.generate();
+
+    // Hook: after states generated
+    await Hooks.execute('afterStatesGenerated', pack.states, pack.burgs, pack);
+
     Routes.generate();
     Religions.generate();
     BurgsAndStates.defineStateForms();
@@ -809,6 +830,9 @@ async function generate(options) {
 
     WARN && console.warn(`TOTAL: ${rn((performance.now() - timeStart) / 1000, 2)}s`);
     showStatistics();
+
+    // Hook: after generation complete
+    await Hooks.execute('afterGenerationComplete', pack, grid);
 
     // Auto-diagnostic to help debug "only water visible" issues
     if (INFO) {
