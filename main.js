@@ -748,6 +748,56 @@ async function generate(options) {
 
     WARN && console.warn(`TOTAL: ${rn((performance.now() - timeStart) / 1000, 2)}s`);
     showStatistics();
+
+    // Auto-diagnostic to help debug "only water visible" issues
+    if (INFO) {
+      console.group("🔍 Post-Generation Diagnostic");
+
+      // Check heightmap
+      if (grid && grid.cells && grid.cells.h) {
+        const heights = grid.cells.h;
+        const landCells = Array.from(heights).filter(h => h >= 20).length;
+        const waterCells = heights.length - landCells;
+        console.log(`✅ Heightmap: ${heights.length} cells (Land: ${landCells}, Water: ${waterCells})`);
+
+        if (landCells === 0) {
+          console.error("❌ BUG DETECTED: ALL CELLS ARE WATER! This is the heightmap generation bug.");
+        }
+      } else {
+        console.error("❌ BUG: grid.cells.h does not exist!");
+      }
+
+      // Check pack features
+      if (pack && pack.features) {
+        const islands = pack.features.filter(f => f && f.type === 'island').length;
+        const lakes = pack.features.filter(f => f && f.type === 'lake').length;
+        console.log(`✅ Features: ${pack.features.length} total (Islands: ${islands}, Lakes: ${lakes})`);
+
+        if (islands === 0) {
+          console.error("❌ BUG DETECTED: NO LAND FEATURES! Only ocean will be visible.");
+        }
+      } else {
+        console.error("❌ BUG: pack.features does not exist!");
+      }
+
+      // Check rendered paths (after a short delay to let rendering complete)
+      setTimeout(() => {
+        const paths = document.querySelectorAll('#featurePaths path').length;
+        if (paths > 0) {
+          console.log(`✅ Rendering: ${paths} feature paths in DOM`);
+        } else {
+          console.error("❌ BUG: No paths rendered to DOM! drawFeatures() may have failed.");
+        }
+
+        console.log("If you see only water but the checks above pass, try:");
+        console.log("  • Toggle layer visibility buttons (Relief, Heightmap, etc.)");
+        console.log("  • Hard reload the page (clear cache)");
+        console.log("  • Check if #landmass has display:none in CSS");
+
+        console.groupEnd();
+      }, 500);
+    }
+
     INFO && console.groupEnd("Generated Map " + seed);
   } catch (error) {
     ERROR && console.error(error);
