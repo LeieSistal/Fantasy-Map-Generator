@@ -25,7 +25,9 @@ const UINT8_MAX = 255;
 const UINT16_MAX = 65535;
 const UINT32_MAX = 4294967295;
 
-if (PRODUCTION && "serviceWorker" in navigator) {
+// TEMPORARY: Service Worker disabled to prevent aggressive caching of old broken version
+// Once the fix is confirmed working, this can be re-enabled with better cache versioning
+if (false && PRODUCTION && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(err => {
       ERROR && console.error("ServiceWorker registration failed: ", err);
