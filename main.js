@@ -769,6 +769,11 @@ async function generate(options) {
 
     pack = {}; // reset pack
 
+    // Invalidate path cache for new map generation
+    if (typeof PathCache !== 'undefined') {
+      PathCache.invalidate();
+    }
+
     Features.markupGrid();
     addLakesInDeepDepressions();
     openNearSeaLakes();

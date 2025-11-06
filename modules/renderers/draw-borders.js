@@ -62,6 +62,16 @@ function drawBorders() {
   svg.select("#provinceBorders").append("path").attr("d", provincePath.join(" "));
 
   function getBorder({type, fromCell, toCell, addToChecked}) {
+    // Check cache first (if PathCache is available)
+    if (typeof PathCache !== 'undefined') {
+      const cached = PathCache.getBorderPath(type, fromCell, toCell);
+      if (cached) {
+        // Still need to mark cells as checked for the algorithm
+        addToChecked(fromCell);
+        return cached;
+      }
+    }
+
     const getType = cellId => cells[type][cellId];
     const isTypeFrom = cellId => cellId < cells.i.length && getType(cellId) === getType(fromCell);
     const isTypeTo = cellId => cellId < cells.i.length && getType(cellId) === getType(toCell);
@@ -73,7 +83,17 @@ function drawBorders() {
     const checkVertex = vertex =>
       vertices.c[vertex].some(isTypeFrom) && vertices.c[vertex].some(c => isLand(c) && isTypeTo(c));
     const chain = getVerticesLine({vertices, startingVertex, checkCell: isTypeFrom, checkVertex, addToChecked});
-    if (chain.length > 1) return "M" + chain.map(cellId => vertices.p[cellId]).join(" ");
+
+    if (chain.length > 1) {
+      const path = "M" + chain.map(cellId => vertices.p[cellId]).join(" ");
+
+      // Store in cache (if PathCache is available)
+      if (typeof PathCache !== 'undefined') {
+        PathCache.setBorderPath(type, fromCell, toCell, path);
+      }
+
+      return path;
+    }
 
     return null;
   }
