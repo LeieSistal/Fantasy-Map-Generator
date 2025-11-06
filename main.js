@@ -601,6 +601,27 @@ function invokeActiveZooming() {
     height: graphHeight / transform.k
   };
 
+  // Relief icon zoom-based redraw
+  if (typeof invokeActiveZooming.lastReliefZoom === 'undefined') {
+    invokeActiveZooming.lastReliefZoom = scale;
+  }
+
+  // Redraw relief icons when crossing zoom thresholds for better performance
+  const lastZoom = invokeActiveZooming.lastReliefZoom;
+  const shouldRedrawRelief =
+    (lastZoom < 0.5 && scale >= 0.5) ||  // Entering visible range
+    (lastZoom >= 0.5 && scale < 0.5) ||  // Leaving visible range
+    (lastZoom < 1.0 && scale >= 1.0) ||  // Crossing normal zoom
+    (lastZoom >= 1.0 && scale < 1.0) ||  // Going below normal zoom
+    (lastZoom < 2.0 && scale >= 2.0) ||  // Entering high zoom
+    (lastZoom >= 2.0 && scale < 2.0) ||  // Leaving high zoom
+    Math.abs(scale - lastZoom) > 0.5;    // Large zoom change
+
+  if (shouldRedrawRelief && terrain.style("display") !== "none" && layerIsOn("toggleRelief")) {
+    drawReliefIcons();
+    invokeActiveZooming.lastReliefZoom = scale;
+  }
+
   if (coastline.select("#sea_island").size() && +coastline.select("#sea_island").attr("auto-filter")) {
     // toggle shade/blur filter for coatline on zoom
     const filter = scale > 1.5 && scale <= 2.6 ? null : scale > 2.6 ? "url(#blurFilter)" : "url(#dropShadow)";

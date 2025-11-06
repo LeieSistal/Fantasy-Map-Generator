@@ -196,6 +196,12 @@ function selectStyleElement() {
     styleHeightmapSkip.value = el.attr("skip");
     styleHeightmapSimplification.value = el.attr("relax");
     styleHeightmapCurve.value = el.attr("curve");
+
+    // Load shading settings
+    styleHeightmapShading.checked = terrs.attr("shading") !== "0";
+    styleHeightmapShadingIntensity.value = 60; // Default
+    styleHeightmapLightAzimuth.value = 315;
+    styleHeightmapLightAltitude.value = 45;
   }
 
   if (styleElement === "markers") {
@@ -700,6 +706,34 @@ styleHeightmapRenderOcean.on("change", e => {
 styleHeightmapTerracing.on("input", e => {
   getEl().attr("terracing", e.target.value);
   drawHeightmap();
+});
+
+styleHeightmapShading.on("change", function() {
+  terrs.attr("shading", this.checked ? "1" : "0");
+  drawHeightmap();
+});
+
+styleHeightmapShadingIntensity.on("input", e => {
+  if (window.TerrainShading) {
+    window.TerrainShading.configure({ intensity: e.target.value / 100 });
+    drawHeightmap();
+  }
+});
+
+styleHeightmapLightAzimuth.on("input", e => {
+  if (window.TerrainShading) {
+    const altitude = +styleHeightmapLightAltitude.value;
+    window.TerrainShading.setLightFromAngles(+e.target.value, altitude);
+    drawHeightmap();
+  }
+});
+
+styleHeightmapLightAltitude.on("input", e => {
+  if (window.TerrainShading) {
+    const azimuth = +styleHeightmapLightAzimuth.value;
+    window.TerrainShading.setLightFromAngles(azimuth, +e.target.value);
+    drawHeightmap();
+  }
 });
 
 styleHeightmapSkip.on("input", e => {

@@ -208,7 +208,7 @@ export function resolveVersionConflicts(mapVersion) {
 
   if (isOlderThan("1.11.0")) {
     // v1.11 added new attributes
-    terrs.attr("scheme", "bright").attr("terracing", 0).attr("skip", 5).attr("relax", 0).attr("curve", 0);
+    terrs.attr("scheme", "bright").attr("terracing", 0).attr("skip", 5).attr("relax", 0).attr("curve", 0).attr("shading", "1");
     svg.select("#oceanic > *").attr("id", "oceanicPattern");
     oceanLayers.attr("layers", "-6,-3,-1");
     gridOverlay.attr("type", "pointyHex").attr("size", 10);

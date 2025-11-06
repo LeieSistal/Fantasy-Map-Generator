@@ -5,7 +5,29 @@ function drawReliefIcons() {
   terrain.selectAll("*").remove();
 
   const cells = pack.cells;
-  const density = terrain.attr("density") || 0.4;
+
+  // Get current zoom level (scale variable is global)
+  const currentZoom = typeof scale !== 'undefined' ? scale : 1.0;
+
+  // Apply zoom-based density scaling
+  // Below zoom 1.0, reduce density progressively
+  // At zoom 0.5, density is halved; below 0.5, no icons
+  let zoomFactor = 1.0;
+  if (currentZoom < 1.0) {
+    if (currentZoom < 0.5) {
+      // No relief icons at very low zoom
+      TIME && console.timeEnd("drawRelief");
+      return;
+    }
+    // Linear scaling between 0.5 and 1.0
+    zoomFactor = (currentZoom - 0.5) / 0.5;
+  } else if (currentZoom >= 2.0) {
+    // Increase density slightly at high zoom
+    zoomFactor = Math.min(1.5, 1.0 + (currentZoom - 2.0) * 0.1);
+  }
+
+  const baseDensity = terrain.attr("density") || 0.4;
+  const density = baseDensity * zoomFactor;
   const size = 2 * (terrain.attr("size") || 1);
   const mod = 0.2 * size; // size modifier
   const relief = [];
@@ -77,11 +99,11 @@ function drawReliefIcons() {
   function getVariant(type) {
     switch (type) {
       case "mount":
-        return rand(2, 7);
+        return rand(2, 9); // Increased from 7 to 9 for new variants
       case "mountSnow":
         return rand(1, 6);
       case "hill":
-        return rand(2, 5);
+        return rand(2, 7); // Increased from 5 to 7 for new variants
       case "conifer":
         return 2;
       case "coniferSnow":

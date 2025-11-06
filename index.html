@@ -826,6 +826,34 @@
                 </td>
               </tr>
 
+              <tr data-tip="Enable slope-based shading for realistic terrain lighting">
+                <td colspan="2">
+                  <input id="styleHeightmapShading" class="checkbox" type="checkbox" checked />
+                  <label for="styleHeightmapShading" class="checkbox-label">Terrain Shading</label>
+                </td>
+              </tr>
+
+              <tr data-tip="Light intensity (0 = flat, 1 = maximum contrast)">
+                <td>Shading Intensity</td>
+                <td>
+                  <slider-input id="styleHeightmapShadingIntensity" min="0" max="100" step="5" value="60"></slider-input>
+                </td>
+              </tr>
+
+              <tr data-tip="Light direction (0 = North, 90 = East, 180 = South, 270 = West)">
+                <td>Light Azimuth</td>
+                <td>
+                  <slider-input id="styleHeightmapLightAzimuth" min="0" max="360" step="15" value="315"></slider-input>
+                </td>
+              </tr>
+
+              <tr data-tip="Light altitude angle (0 = horizon, 90 = overhead)">
+                <td>Light Altitude</td>
+                <td>
+                  <slider-input id="styleHeightmapLightAltitude" min="0" max="90" step="5" value="45"></slider-input>
+                </td>
+              </tr>
+
               <tr data-tip="Layers reduction rate. Increase to improve performance">
                 <td>Reduce layers</td>
                 <td>
@@ -7564,6 +7592,74 @@
             />
           </symbol>
 
+          <symbol id="relief-mount-8" viewBox="-5 -10 45 45">
+            <polygon
+              fill="#7C8299"
+              stroke="#7C8299"
+              stroke-width=".2"
+              points="2.5,18 8.3,16.2 12.5,10.5 15.8,8.2 18.2,3.5 20.5,0.8 23.2,5.1 26.8,9.4 29.5,13.2 32.1,17.5 33.8,19.2 28.5,20.1 22.8,21.3 17.2,21.8 11.5,21.5 6.3,20.7"
+            />
+            <polygon
+              fill="#9FA6B8"
+              points="2.5,18 8.3,16.2 12.5,10.5 15.8,8.2 18.2,3.5 20.5,0.8 23.2,5.1 26.8,9.4 29.5,13.2 32.1,17.5 33.8,19.2 28.5,20.1 25.2,16.8 22.5,13.2 19.8,9.5 17.5,13.8 15.2,17.5 12.8,20.8 11.5,21.5 6.3,20.7"
+            />
+            <polygon
+              fill="#5C6277"
+              points="20.5,0.8 18.2,3.5 15.8,8.2 17.5,13.8 19.8,9.5 22.5,13.2 23.2,5.1"
+            />
+          </symbol>
+
+          <symbol id="relief-mount-9" viewBox="-8 -8 42 42">
+            <polygon
+              fill="#8C8F7A"
+              stroke="#8C8F7A"
+              stroke-width=".2"
+              points="1.2,17.5 5.8,15.8 9.2,12.3 13.5,8.7 16.2,5.2 18.8,1.5 21.2,4.8 24.5,10.2 27.8,14.5 29.2,17.8 31.5,19.5 26.2,20.8 20.5,21.5 14.8,21.2 9.2,20.3 4.5,19.2"
+            />
+            <polygon
+              fill="#A8AB96"
+              points="1.2,17.5 5.8,15.8 9.2,12.3 13.5,8.7 16.2,5.2 18.8,1.5 21.2,4.8 24.5,10.2 27.8,14.5 29.2,17.8 31.5,19.5 26.2,20.8 23.5,17.2 21.2,13.8 18.5,10.2 16.8,14.5 14.2,18.2 11.5,20.5 9.2,20.3 4.5,19.2"
+            />
+            <polygon
+              fill="#6C6F5A"
+              points="18.8,1.5 16.2,5.2 14.2,8.5 16.8,14.5 18.5,10.2 21.2,13.8 21.2,4.8"
+            />
+          </symbol>
+
+          <symbol id="relief-hill-6" viewBox="0 0 100 100">
+            <path
+              fill="#8B9467"
+              stroke="#5c5c70"
+              stroke-width="1"
+              d="m15,60 q12,-18 25,-15 q13,3 22,8 q9,5 18,2 q9,-3 15,5 l0,10 h-80 l0,-10 z"
+            />
+            <path
+              fill="#6B7447"
+              d="m15,60 q12,-18 25,-15 q7,2 13,5 q-3,8 -10,15 l-28,5 z"
+            />
+            <path
+              fill="#6B7447"
+              d="m62,53 q9,5 18,2 q9,-3 15,5 l0,10 h-35 q8,-8 2,-17 z"
+            />
+          </symbol>
+
+          <symbol id="relief-hill-7" viewBox="0 0 100 100">
+            <path
+              fill="#7A8456"
+              stroke="#5c5c70"
+              stroke-width="0.8"
+              d="m20,65 q8,-12 18,-10 q10,2 16,6 q6,4 14,1 q8,-3 12,3 l-2,8 h-60 l2,-8 z"
+            />
+            <path
+              fill="#5A6436"
+              d="m20,65 q8,-12 18,-10 q5,1 10,4 q-2,6 -8,12 l-22,4 z"
+            />
+            <path
+              fill="#5A6436"
+              d="m54,61 q6,4 14,1 q8,-3 12,3 l-2,8 h-28 q6,-6 4,-12 z"
+            />
+          </symbol>
+
           <symbol id="relief-dune-2" viewBox="-5 -17 40 40">
             <ellipse fill="#999999" opacity=".5" cx="17.1027" cy="5.3226" rx="17.1027" ry=".5194" />
             <polygon
@@ -8230,6 +8326,7 @@
     <script defer src="modules/io/export.js?v=1.108.11"></script>
 
     <script defer src="modules/renderers/draw-borders.js?v=1.104.0"></script>
+    <script defer src="modules/utils/terrain-shading.js?v=1.108.6"></script>
     <script defer src="modules/renderers/draw-heightmap.js?v=1.104.0"></script>
     <script defer src="modules/renderers/draw-markers.js?v=1.108.5"></script>
     <script defer src="modules/renderers/draw-scalebar.js?v=1.108.1"></script>

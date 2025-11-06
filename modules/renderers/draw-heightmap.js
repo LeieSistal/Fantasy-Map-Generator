@@ -14,6 +14,10 @@ function drawHeightmap() {
   const used = new Uint8Array(cells.i.length);
   const heights = Array.from(cells.i).sort((a, b) => cells.h[a] - cells.h[b]);
 
+  // Calculate terrain shading if enabled
+  const shadingEnabled = window.TerrainShading && terrs.attr("shading") !== "0";
+  const shadingMap = shadingEnabled ? window.TerrainShading.calculateShadingMap() : null;
+
   // ocean cells
   const renderOceanCells = Boolean(+ocean.attr("data-render"));
   if (renderOceanCells) {
@@ -94,7 +98,27 @@ function drawHeightmap() {
 
     if (paths[height] && paths[height].length >= 10) {
       const terracing = group.attr("terracing") / 10 || 0;
-      const color = getColor(height, scheme);
+      let color = getColor(height, scheme);
+
+      // Apply terrain shading if enabled
+      if (shadingMap && shadingEnabled) {
+        // Calculate average shading for cells at this height
+        let totalShading = 0;
+        let count = 0;
+        for (const i of cells.i) {
+          if (cells.h[i] === height && !used[i]) {
+            const shading = shadingMap.get(i);
+            if (shading !== undefined) {
+              totalShading += shading;
+              count++;
+            }
+          }
+        }
+        if (count > 0) {
+          const avgShading = totalShading / count;
+          color = window.TerrainShading.applyShading(color, avgShading);
+        }
+      }
 
       if (terracing) {
         group
