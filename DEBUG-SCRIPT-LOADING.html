@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🔍 Debug Test - Script Loading</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+        }
+        .test { padding: 10px; margin: 5px 0; background: #2a2a2a; }
+        .pass { border-left: 4px solid #00ff00; }
+        .fail { border-left: 4px solid #ff0000; color: #ff0000; }
+        .warn { border-left: 4px solid #ffaa00; color: #ffaa00; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Script Loading Debug Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function log(msg, type = 'pass') {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.textContent = msg;
+            results.appendChild(div);
+            console.log(msg);
+        }
+
+        log('🧪 Starting script loading test...', 'warn');
+        log('═'.repeat(60), 'warn');
+    </script>
+
+    <!-- EXACT SAME LOADING ORDER AS index.html -->
+    <script src="libs/d3.min.js"></script>
+    <script>
+        if (typeof d3 !== 'undefined') {
+            log('✅ d3.js loaded');
+        } else {
+            log('❌ d3.js FAILED to load', 'fail');
+        }
+    </script>
+
+    <script src="libs/polylabel.min.js?v1.105.0"></script>
+    <script>
+        if (typeof polylabel !== 'undefined') {
+            log('✅ polylabel.min.js loaded');
+        } else {
+            log('❌ polylabel.min.js FAILED', 'fail');
+        }
+    </script>
+
+    <script src="libs/simplify.js?v1.105.6"></script>
+    <script>
+        if (typeof simplify !== 'undefined') {
+            log('✅ simplify.js loaded');
+        } else {
+            log('❌ simplify.js FAILED', 'fail');
+        }
+    </script>
+
+    <script src="modules/renderers/draw-features.js?v=1.108.2"></script>
+    <script>
+        if (typeof drawFeatures !== 'undefined') {
+            log('✅ drawFeatures() defined');
+            log('   Type: ' + typeof drawFeatures);
+        } else {
+            log('❌ drawFeatures() NOT DEFINED!!!', 'fail');
+        }
+
+        if (typeof getFeaturePath !== 'undefined') {
+            log('✅ getFeaturePath() defined');
+        } else {
+            log('❌ getFeaturePath() NOT DEFINED', 'fail');
+        }
+    </script>
+
+    <!-- Simulate drawLayers call -->
+    <script>
+        log('═'.repeat(60), 'warn');
+        log('🎯 Simulating drawLayers() call...', 'warn');
+
+        if (typeof drawFeatures === 'function') {
+            log('✅ drawFeatures is callable');
+            log('✅ SCRIPT LOADING ORDER IS CORRECT!', 'pass');
+            log('');
+            log('🔍 The bug must be elsewhere. Checking pack...', 'warn');
+        } else {
+            log('❌ drawFeatures is NOT a function!', 'fail');
+            log('❌ SCRIPT LOADING ORDER IS BROKEN!', 'fail');
+        }
+    </script>
+
+    <!-- Now load actual scripts to test with real data -->
+    <script src="versioning.js"></script>
+    <script src="utils/shorthands.js?v=1.106.0"></script>
+    <script src="utils/commonUtils.js?v=1.103.0"></script>
+    <script src="utils/pathUtils.js?v=1.106.0"></script>
+
+    <script>
+        log('═'.repeat(60), 'warn');
+        log('🧪 Testing with utilities loaded...', 'warn');
+
+        if (typeof clipPoly !== 'undefined') {
+            log('✅ clipPoly() available (from pathUtils)');
+        } else {
+            log('⚠️  clipPoly() not available', 'warn');
+        }
+
+        if (typeof round !== 'undefined') {
+            log('✅ round() available');
+        } else {
+            log('⚠️  round() not available', 'warn');
+        }
+
+        log('═'.repeat(60), 'warn');
+        log('📊 SUMMARY:', 'warn');
+        log('');
+        log('If drawFeatures is defined = Script order is OK', 'pass');
+        log('If drawFeatures is undefined = Script order is BROKEN', 'fail');
+        log('');
+        log('Next: Check if pack.features exists when drawFeatures() runs', 'warn');
+    </script>
+
+    <h2 style="margin-top: 40px;">Manual Tests:</h2>
+    <div class="test warn">
+        Open browser console (F12) and type:
+        <pre style="margin: 10px 0;">
+typeof drawFeatures
+// Should be: "function"
+
+typeof d3
+// Should be: "object"
+
+typeof simplify
+// Should be: "function"
+        </pre>
+    </div>
+
+    <button onclick="testDrawFeatures()" style="padding: 10px 20px; font-size: 16px; background: #00ff00; border: none; cursor: pointer;">
+        🧪 Test drawFeatures() Call
+    </button>
+
+    <script>
+        function testDrawFeatures() {
+            log('═'.repeat(60), 'warn');
+            log('🧪 Testing drawFeatures() call...', 'warn');
+
+            try {
+                // Simulate minimal pack structure
+                if (typeof pack === 'undefined') {
+                    window.pack = {
+                        features: [
+                            {i: 0, type: 'ocean'},
+                            {i: 1, type: 'island', vertices: [0, 1, 2], group: 'sea_island'}
+                        ],
+                        vertices: {
+                            p: [[0,0], [10,0], [10,10]]
+                        }
+                    };
+                    log('✅ Created mock pack object');
+                }
+
+                // Create minimal SVG structure
+                if (!document.getElementById('map')) {
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.id = 'map';
+                    svg.innerHTML = `
+                        <defs id="deftemp">
+                            <g id="featurePaths"></g>
+                            <mask id="land"></mask>
+                            <mask id="water"></mask>
+                        </defs>
+                        <g id="coastline">
+                            <g id="sea_island"></g>
+                            <g id="lake_island"></g>
+                        </g>
+                        <g id="lakes">
+                            <g id="freshwater"></g>
+                        </g>
+                    `;
+                    document.body.appendChild(svg);
+
+                    window.defs = d3.select('#deftemp');
+                    window.coastline = d3.select('#coastline');
+                    window.lakes = d3.select('#lakes');
+                    window.TIME = true;
+                    window.ERROR = true;
+
+                    log('✅ Created mock SVG structure');
+                }
+
+                log('🚀 Calling drawFeatures()...');
+                drawFeatures();
+                log('✅ drawFeatures() executed successfully!', 'pass');
+
+                // Check results
+                const paths = document.querySelectorAll('#featurePaths path');
+                log(`✅ Generated ${paths.length} feature paths`);
+
+            } catch (error) {
+                log('❌ ERROR calling drawFeatures(): ' + error.message, 'fail');
+                log('❌ Stack: ' + error.stack, 'fail');
+            }
+        }
+    </script>
+</body>
+</html>
