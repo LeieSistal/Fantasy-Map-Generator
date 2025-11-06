@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔍 Test Rapide</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #000;
+      color: #fff;
+      padding: 20px;
+      font-size: 18px;
+    }
+
+    .result {
+      background: #222;
+      border-radius: 15px;
+      padding: 30px;
+      margin: 20px 0;
+      border-left: 8px solid #666;
+    }
+
+    .result.ok { border-left-color: #0f0; background: #002200; }
+    .result.bad { border-left-color: #f00; background: #220000; }
+    .result.warn { border-left-color: #ff0; background: #222200; }
+
+    .result h2 {
+      font-size: 32px;
+      margin-bottom: 15px;
+    }
+
+    .result p {
+      font-size: 24px;
+      line-height: 1.6;
+    }
+
+    .big {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+
+    button {
+      width: 100%;
+      padding: 25px;
+      font-size: 28px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="font-size: 36px; text-align: center; margin-bottom: 30px;">
+    🔍 TEST ULTRA-RAPIDE
+  </h1>
+
+  <button onclick="runTest()">▶️ DÉMARRER LE TEST</button>
+
+  <div id="results"></div>
+
+  <script>
+    function show(title, message, status) {
+      const div = document.createElement('div');
+      div.className = `result ${status}`;
+      div.innerHTML = `<h2>${title}</h2><p>${message}</p>`;
+      document.getElementById('results').appendChild(div);
+    }
+
+    async function runTest() {
+      document.getElementById('results').innerHTML = '';
+
+      show('⏳ Test en cours...', 'Chargement de la page principale...', 'warn');
+
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = './index.html';
+      document.body.appendChild(iframe);
+
+      await new Promise(resolve => {
+        iframe.onload = resolve;
+        setTimeout(resolve, 8000);
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      try {
+        const win = iframe.contentWindow;
+
+        // TEST 1: VERSION
+        const VERSION = win.VERSION;
+        if (VERSION) {
+          show('✅ VERSION', `Trouvée: ${VERSION}`, 'ok');
+        } else {
+          show('❌ VERSION', 'NON TROUVÉE!', 'bad');
+          return;
+        }
+
+        // TEST 2: drawFeatures
+        if (typeof win.drawFeatures === 'function') {
+          show('✅ drawFeatures()', 'Fonction existe', 'ok');
+        } else {
+          show('❌ drawFeatures()', 'FONCTION MANQUANTE!', 'bad');
+          return;
+        }
+
+        // TEST 3: pack.features
+        const pack = win.pack;
+        if (!pack || !pack.features) {
+          show('❌ pack.features', 'N\'EXISTE PAS!', 'bad');
+          show('💡 PROBLÈME', 'La carte n\'est pas générée du tout!', 'bad');
+          return;
+        }
+
+        const total = pack.features.length;
+        const nonOcean = pack.features.filter(f => f && f.type !== 'ocean').length;
+        const ocean = pack.features.filter(f => f && f.type === 'ocean').length;
+
+        show('📊 pack.features',
+          `Total: ${total}<br>Terres/Lacs: ${nonOcean}<br>Océan: ${ocean}`,
+          nonOcean > 0 ? 'ok' : 'bad');
+
+        if (nonOcean === 0) {
+          show('❌ PROBLÈME TROUVÉ!',
+            '<div class="big">❌</div>Le générateur ne crée QUE de l\'océan!<br><br>pack.features ne contient aucune terre.<br><br>Le problème est dans la GÉNÉRATION, pas dans le rendu!',
+            'bad');
+
+          // Check if it's the deployed version issue
+          show('🔍 Cause probable',
+            'GitHub Pages déploie depuis <strong>master</strong> qui n\'a pas les correctifs.<br><br>' +
+            'Vous devez créer un Pull Request pour merger les correctifs!<br><br>' +
+            '<a href="https://github.com/LeieSistal/Fantasy-Map-Generator/compare/master...claude/debug-project-issues-011CUpaJgwHQ8yhLK8YdQN6C" style="color:#0ff">👉 CLIQUEZ ICI pour créer le PR</a>',
+            'warn');
+        } else {
+          show('✅ GÉNÉRATION OK',
+            `La carte contient ${nonOcean} éléments de terre/lacs`,
+            'ok');
+
+          // Check SVG
+          const svg = win.document.getElementById('map');
+          const featurePaths = svg ? svg.querySelector('#featurePaths') : null;
+
+          if (!featurePaths) {
+            show('❌ SVG', '#featurePaths manquant!', 'bad');
+          } else if (featurePaths.children.length === 0) {
+            show('❌ SVG', '#featurePaths est VIDE!<br>drawFeatures() n\'a rien ajouté!', 'bad');
+          } else {
+            show('✅ SVG', `${featurePaths.children.length} paths dessinés`, 'ok');
+          }
+        }
+
+        // Service Worker check
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        if (registrations.length > 0) {
+          show('⚠️ Service Worker',
+            `${registrations.length} actif(s) - peut causer des problèmes de cache!`,
+            'warn');
+        } else {
+          show('✅ Service Worker', 'Désactivé (bon)', 'ok');
+        }
+
+      } catch (error) {
+        show('❌ ERREUR', error.message, 'bad');
+      }
+    }
+  </script>
+</body>
+</html>
